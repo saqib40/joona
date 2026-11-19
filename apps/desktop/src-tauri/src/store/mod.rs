@@ -1,4 +1,4 @@
-//! Joona's database, `%APPDATA%\Joona\joona.db`: the dictation history, the
+//! Joona's database, `%LOCALAPPDATA%\Joona\joona.db`: the dictation history, the
 //! dictionary, snippets and styles.
 
 mod dictionary;
