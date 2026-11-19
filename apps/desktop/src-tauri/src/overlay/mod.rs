@@ -231,13 +231,13 @@ fn run(shared: Arc<Shared>) {
 
 #[cfg(target_os = "macos")]
 fn run(shared: Arc<Shared>) {
-    let window_ptr = shared.hwnd as *mut objc2::runtime::AnyObject;
-    if window_ptr.is_null() {
+    let window_handle = shared.hwnd as usize;
+    if window_handle == 0 {
         return;
     }
 
-    mac::setup_window(window_ptr);
-    mac::place_at_bottom_center(window_ptr);
+    mac::setup_window(window_handle);
+    mac::place_at_bottom_center(window_handle);
 
     let mut hovering = false;
     let mut shown = true;
@@ -254,22 +254,22 @@ fn run(shared: Arc<Shared>) {
         let regions = lock(&shared.regions).clone();
 
         if kick || tick.is_multiple_of(SLOW_EVERY) {
-            mac::place_at_bottom_center(window_ptr);
+            mac::place_at_bottom_center(window_handle);
             shared.report_resting(shared.resting_wanted(false));
             let visible = dictating || !regions.is_empty() || shared.resting.load(Ordering::Relaxed);
             if visible != shown {
-                mac::show(window_ptr, visible);
+                mac::show(window_handle, visible);
                 shown = visible;
             }
             if shown && (kick || tick.is_multiple_of(SLOW_EVERY * 4)) {
-                mac::raise(window_ptr);
+                mac::raise(window_handle);
             }
         }
 
-        let inside = shown && cursor.is_some_and(|c| mac::hit(window_ptr, c, &regions));
+        let inside = shown && cursor.is_some_and(|c| mac::hit(c, &regions));
         if inside != hovering {
             hovering = inside;
-            mac::set_click_through(window_ptr, !inside);
+            mac::set_click_through(window_handle, !inside);
             shared.events.hover(inside);
         }
 
@@ -291,11 +291,23 @@ fn run(shared: Arc<Shared>) {
 
 #[cfg(target_os = "macos")]
 mod mac {
+    use std::sync::Mutex;
+
     use objc2::msg_send;
     use objc2::runtime::AnyObject;
     use objc2_foundation::{NSPoint, NSRect, NSSize};
 
-    use super::{BAR_HEIGHT, BAR_WIDTH, Region};
+    use super::{BAR_HEIGHT, BAR_WIDTH, Region, lock};
+
+    #[link(name = "System", kind = "dylib")]
+    unsafe extern "C" {
+        static _dispatch_main_q: [u8; 0];
+        fn dispatch_async_f(
+            queue: *const std::ffi::c_void,
+            context: *mut std::ffi::c_void,
+            work: unsafe extern "C" fn(*mut std::ffi::c_void),
+        );
+    }
 
     #[link(name = "CoreGraphics", kind = "framework")]
     unsafe extern "C" {
@@ -304,54 +316,97 @@ mod mac {
         fn CFRelease(cf: *const std::ffi::c_void);
     }
 
-    pub fn setup_window(window_ptr: *mut AnyObject) {
+    #[derive(Clone, Copy)]
+    struct PlacedFrame {
+        x: f64,
+        y: f64,
+    }
+
+    static PLACED_FRAME: Mutex<Option<PlacedFrame>> = Mutex::new(None);
+
+    fn run_on_main<F: FnOnce() + Send + 'static>(f: F) {
+        let boxed: Box<Box<dyn FnOnce() + Send>> = Box::new(Box::new(f));
+        let raw = Box::into_raw(boxed) as *mut std::ffi::c_void;
+
+        unsafe extern "C" fn trampoline(context: *mut std::ffi::c_void) {
+            let boxed = unsafe { Box::from_raw(context as *mut Box<dyn FnOnce() + Send>) };
+            boxed();
+        }
+
         unsafe {
+            let queue = std::ptr::addr_of!(_dispatch_main_q) as *const std::ffi::c_void;
+            dispatch_async_f(queue, raw, trampoline);
+        }
+    }
+
+    pub fn setup_window(window_ptr: usize) {
+        run_on_main(move || unsafe {
+            let window = window_ptr as *mut AnyObject;
+            if window.is_null() {
+                return;
+            }
             // NSStatusWindowLevel = 25 keeps the bar above floating utility windows.
-            let _: () = msg_send![window_ptr, setLevel: 25i64];
+            let _: () = msg_send![window, setLevel: 25i64];
             // NSWindowCollectionBehaviorCanJoinAllSpaces (1 << 0) | Stationary (1 << 4) | IgnoresCycle (1 << 6)
             let behavior: usize = (1 << 0) | (1 << 4) | (1 << 6);
-            let _: () = msg_send![window_ptr, setCollectionBehavior: behavior];
-            let _: () = msg_send![window_ptr, setIgnoresMouseEvents: true];
-        }
+            let _: () = msg_send![window, setCollectionBehavior: behavior];
+            let _: () = msg_send![window, setIgnoresMouseEvents: true];
+        });
     }
 
-    pub fn set_click_through(window_ptr: *mut AnyObject, click_through: bool) {
-        unsafe {
-            let _: () = msg_send![window_ptr, setIgnoresMouseEvents: click_through];
-        }
-    }
-
-    pub fn show(window_ptr: *mut AnyObject, visible: bool) {
-        unsafe {
-            if visible {
-                let _: () = msg_send![window_ptr, orderFrontRegardless];
-            } else {
-                let _: () = msg_send![window_ptr, orderOut: std::ptr::null::<AnyObject>()];
+    pub fn set_click_through(window_ptr: usize, click_through: bool) {
+        run_on_main(move || unsafe {
+            let window = window_ptr as *mut AnyObject;
+            if !window.is_null() {
+                let _: () = msg_send![window, setIgnoresMouseEvents: click_through];
             }
-        }
+        });
     }
 
-    pub fn raise(window_ptr: *mut AnyObject) {
-        unsafe {
-            let _: () = msg_send![window_ptr, orderFrontRegardless];
-        }
+    pub fn show(window_ptr: usize, visible: bool) {
+        run_on_main(move || unsafe {
+            let window = window_ptr as *mut AnyObject;
+            if window.is_null() {
+                return;
+            }
+            if visible {
+                let _: () = msg_send![window, orderFrontRegardless];
+            } else {
+                let _: () = msg_send![window, orderOut: std::ptr::null::<AnyObject>()];
+            }
+        });
     }
 
-    pub fn place_at_bottom_center(window_ptr: *mut AnyObject) {
-        unsafe {
-            let screen: *mut AnyObject = msg_send![window_ptr, screen];
+    pub fn raise(window_ptr: usize) {
+        run_on_main(move || unsafe {
+            let window = window_ptr as *mut AnyObject;
+            if !window.is_null() {
+                let _: () = msg_send![window, orderFrontRegardless];
+            }
+        });
+    }
+
+    pub fn place_at_bottom_center(window_ptr: usize) {
+        run_on_main(move || unsafe {
+            let window = window_ptr as *mut AnyObject;
+            if window.is_null() {
+                return;
+            }
+            let screen: *mut AnyObject = msg_send![window, screen];
             if screen.is_null() {
                 return;
             }
             let visible_frame: NSRect = msg_send![screen, visibleFrame];
             let x = visible_frame.origin.x + (visible_frame.size.width - BAR_WIDTH) / 2.0;
             let y = visible_frame.origin.y + 16.0;
+            *lock(&PLACED_FRAME) = Some(PlacedFrame { x, y });
+
             let new_frame = NSRect::new(
                 NSPoint::new(x, y),
                 NSSize::new(BAR_WIDTH, BAR_HEIGHT),
             );
-            let _: () = msg_send![window_ptr, setFrame: new_frame, display: true];
-        }
+            let _: () = msg_send![window, setFrame: new_frame, display: true];
+        });
     }
 
     pub fn cursor() -> Option<(f64, f64)> {
@@ -366,17 +421,17 @@ mod mac {
         }
     }
 
-    pub fn hit(window_ptr: *mut AnyObject, (cursor_x, cursor_y): (f64, f64), regions: &[Region]) -> bool {
+    pub fn hit((cursor_x, cursor_y): (f64, f64), regions: &[Region]) -> bool {
         if regions.is_empty() {
             return false;
         }
-        unsafe {
-            let frame: NSRect = msg_send![window_ptr, frame];
-            // Convert cursor coordinates to window coordinates
-            let rel_x = cursor_x - frame.origin.x;
-            let rel_y = frame.origin.y + frame.size.height - cursor_y;
-            regions.iter().any(|r| r.contains(rel_x, rel_y))
-        }
+        let frame = lock(&PLACED_FRAME).clone();
+        let Some(PlacedFrame { x, y }) = frame else {
+            return false;
+        };
+        let rel_x = cursor_x - x;
+        let rel_y = y + BAR_HEIGHT - cursor_y;
+        regions.iter().any(|r| r.contains(rel_x, rel_y))
     }
 }
 

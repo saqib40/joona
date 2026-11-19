@@ -295,8 +295,6 @@ fn run_tap_thread(
             CGEventType::KeyDown,
             CGEventType::KeyUp,
             CGEventType::FlagsChanged,
-            CGEventType::TapDisabledByTimeout,
-            CGEventType::TapDisabledByUserInput,
         ],
         move |_proxy, etype, event| {
             if matches!(
