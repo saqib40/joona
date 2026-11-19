@@ -35,6 +35,7 @@ const hostTriple = match[1].trim();
 
 const cargoArgs = ["build", "-p", "joona-engine"];
 if (isRelease) cargoArgs.push("--release");
+if (process.platform === "darwin") cargoArgs.push("--features", "metal");
 
 console.log(`Running: cargo ${cargoArgs.join(" ")}`);
 execSync(`cargo ${cargoArgs.join(" ")}`, { stdio: "inherit", cwd: root });

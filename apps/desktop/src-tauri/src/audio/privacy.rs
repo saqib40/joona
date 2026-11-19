@@ -28,6 +28,7 @@ pub const PRIVACY_SETTINGS_URL: &str = "ms-settings:privacy-microphone";
 
 /// Each switch is stored as `Allow` or `Deny`. A missing value is the
 /// Windows default, which allows.
+#[cfg_attr(not(windows), allow(dead_code))]
 fn decide(device: Option<&str>, user: Option<&str>, desktop_apps: Option<&str>) -> MicAccess {
     let denied = |value: Option<&str>| value.is_some_and(|v| v.trim().eq_ignore_ascii_case("deny"));
     if denied(device) {

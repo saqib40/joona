@@ -229,7 +229,56 @@ fn run(shared: Arc<Shared>) {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+fn run(shared: Arc<Shared>) {
+    let window_ptr = shared.hwnd as *mut objc2::runtime::AnyObject;
+    if window_ptr.is_null() {
+        return;
+    }
+
+    mac::setup_window(window_ptr);
+    mac::place_at_bottom_center(window_ptr);
+
+    let mut hovering = false;
+    let mut shown = true;
+    let mut tick: u32 = 0;
+
+    shared
+        .events
+        .resting(shared.resting.load(Ordering::Relaxed));
+
+    while !shared.quit.load(Ordering::Relaxed) {
+        let dictating = shared.dictating.load(Ordering::Relaxed);
+        let kick = shared.kick.swap(false, Ordering::Relaxed);
+        let cursor = mac::cursor();
+        let regions = lock(&shared.regions).clone();
+
+        if kick || tick.is_multiple_of(SLOW_EVERY) {
+            mac::place_at_bottom_center(window_ptr);
+            shared.report_resting(shared.resting_wanted(false));
+            let visible = dictating || !regions.is_empty() || shared.resting.load(Ordering::Relaxed);
+            if visible != shown {
+                mac::show(window_ptr, visible);
+                shown = visible;
+            }
+            if shown && (kick || tick.is_multiple_of(SLOW_EVERY * 4)) {
+                mac::raise(window_ptr);
+            }
+        }
+
+        let inside = shown && cursor.is_some_and(|c| mac::hit(window_ptr, c, &regions));
+        if inside != hovering {
+            hovering = inside;
+            mac::set_click_through(window_ptr, !inside);
+            shared.events.hover(inside);
+        }
+
+        tick = tick.wrapping_add(1);
+        std::thread::sleep(POLL);
+    }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 fn run(shared: Arc<Shared>) {
     shared
         .events
@@ -237,6 +286,97 @@ fn run(shared: Arc<Shared>) {
     while !shared.quit.load(Ordering::Relaxed) {
         shared.report_resting(shared.resting_wanted(false));
         std::thread::sleep(POLL * SLOW_EVERY);
+    }
+}
+
+#[cfg(target_os = "macos")]
+mod mac {
+    use objc2::msg_send;
+    use objc2::runtime::AnyObject;
+    use objc2_foundation::{NSPoint, NSRect, NSSize};
+
+    use super::{BAR_HEIGHT, BAR_WIDTH, Region};
+
+    #[link(name = "CoreGraphics", kind = "framework")]
+    unsafe extern "C" {
+        fn CGEventCreate(source: *const std::ffi::c_void) -> *mut std::ffi::c_void;
+        fn CGEventGetLocation(event: *const std::ffi::c_void) -> core_graphics::geometry::CGPoint;
+        fn CFRelease(cf: *const std::ffi::c_void);
+    }
+
+    pub fn setup_window(window_ptr: *mut AnyObject) {
+        unsafe {
+            // NSStatusWindowLevel = 25 keeps the bar above floating utility windows.
+            let _: () = msg_send![window_ptr, setLevel: 25i64];
+            // NSWindowCollectionBehaviorCanJoinAllSpaces (1 << 0) | Stationary (1 << 4) | IgnoresCycle (1 << 6)
+            let behavior: usize = (1 << 0) | (1 << 4) | (1 << 6);
+            let _: () = msg_send![window_ptr, setCollectionBehavior: behavior];
+            let _: () = msg_send![window_ptr, setIgnoresMouseEvents: true];
+        }
+    }
+
+    pub fn set_click_through(window_ptr: *mut AnyObject, click_through: bool) {
+        unsafe {
+            let _: () = msg_send![window_ptr, setIgnoresMouseEvents: click_through];
+        }
+    }
+
+    pub fn show(window_ptr: *mut AnyObject, visible: bool) {
+        unsafe {
+            if visible {
+                let _: () = msg_send![window_ptr, orderFrontRegardless];
+            } else {
+                let _: () = msg_send![window_ptr, orderOut: std::ptr::null::<AnyObject>()];
+            }
+        }
+    }
+
+    pub fn raise(window_ptr: *mut AnyObject) {
+        unsafe {
+            let _: () = msg_send![window_ptr, orderFrontRegardless];
+        }
+    }
+
+    pub fn place_at_bottom_center(window_ptr: *mut AnyObject) {
+        unsafe {
+            let screen: *mut AnyObject = msg_send![window_ptr, screen];
+            if screen.is_null() {
+                return;
+            }
+            let visible_frame: NSRect = msg_send![screen, visibleFrame];
+            let x = visible_frame.origin.x + (visible_frame.size.width - BAR_WIDTH) / 2.0;
+            let y = visible_frame.origin.y + 16.0;
+            let new_frame = NSRect::new(
+                NSPoint::new(x, y),
+                NSSize::new(BAR_WIDTH, BAR_HEIGHT),
+            );
+            let _: () = msg_send![window_ptr, setFrame: new_frame, display: true];
+        }
+    }
+
+    pub fn cursor() -> Option<(f64, f64)> {
+        unsafe {
+            let event = CGEventCreate(std::ptr::null());
+            if event.is_null() {
+                return None;
+            }
+            let pt = CGEventGetLocation(event);
+            CFRelease(event);
+            Some((pt.x, pt.y))
+        }
+    }
+
+    pub fn hit(window_ptr: *mut AnyObject, (cursor_x, cursor_y): (f64, f64), regions: &[Region]) -> bool {
+        if regions.is_empty() {
+            return false;
+        }
+        unsafe {
+            let frame: NSRect = msg_send![window_ptr, frame];
+            // Convert cursor coordinates to window coordinates
+            let rel_x = cursor_x - frame.origin.x;
+            let rel_y = frame.origin.y + frame.size.height - cursor_y;
+            regions.iter().any(|r| r.contains(rel_x, rel_y))
+        }
     }
 }
 

@@ -9,6 +9,8 @@
 
 #[cfg(windows)]
 mod windows;
+#[cfg(target_os = "macos")]
+mod macos;
 
 use std::time::Duration;
 
@@ -17,6 +19,8 @@ use specta::Type;
 
 #[cfg(windows)]
 pub use windows::{Inserter, foreground};
+#[cfg(target_os = "macos")]
+pub use macos::{Inserter, foreground};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "snake_case")]
@@ -282,10 +286,10 @@ pub(crate) fn strokes(text: &str) -> Vec<Stroke> {
     out
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "macos")))]
 pub struct Inserter;
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "macos")))]
 impl Inserter {
     pub fn new() -> anyhow::Result<Self> {
         anyhow::bail!("text insertion isn't available on this platform yet")
@@ -312,7 +316,7 @@ impl Inserter {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn foreground() -> Option<ForegroundApp> {
     None
 }

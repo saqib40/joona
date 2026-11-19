@@ -275,7 +275,12 @@ fn native_handle(window: &WebviewWindow) -> anyhow::Result<isize> {
     Ok(window.hwnd()?.0 as isize)
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+fn native_handle(window: &WebviewWindow) -> anyhow::Result<isize> {
+    Ok(window.ns_window()? as isize)
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 fn native_handle(_window: &WebviewWindow) -> anyhow::Result<isize> {
     Ok(0)
 }

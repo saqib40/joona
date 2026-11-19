@@ -64,7 +64,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": "all",
     "publisher": "Joona contributors",
     "homepage": "https://github.com/saqib40/joona",
     "copyright": "Copyright (c) 2026 Joona contributors. MIT licensed.",
@@ -75,10 +75,15 @@
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
-      "icons/icon.ico"
+      "icons/icon.ico",
+      "icons/icon.icns"
     ],
     "externalBin": ["binaries/joona-engine"],
     "licenseFile": "../../../LICENSE",
+    "macOS": {
+      "minimumSystemVersion": "10.15",
+      "infoPlist": "Info.plist"
+    },
     "windows": {
       "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true },
       "nsis": {

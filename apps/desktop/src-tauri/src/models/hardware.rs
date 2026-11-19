@@ -125,7 +125,41 @@ fn gpus() -> Vec<Gpu> {
     found
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+fn gpus() -> Vec<Gpu> {
+    #[link(name = "Metal", kind = "framework")]
+    unsafe extern "C" {
+        fn MTLCreateSystemDefaultDevice() -> *mut std::ffi::c_void;
+    }
+    use objc2::msg_send;
+    use objc2::rc::Retained;
+    use objc2::runtime::AnyObject;
+    use objc2_foundation::NSString;
+
+    let device_ptr = unsafe { MTLCreateSystemDefaultDevice() };
+    if device_ptr.is_null() {
+        return Vec::new();
+    }
+    let device: &AnyObject = unsafe { &*(device_ptr as *const AnyObject) };
+
+    let name_retained: Option<Retained<NSString>> = unsafe { msg_send![device, name] };
+    let name = name_retained
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| "Apple Metal GPU".into());
+
+    let max_vram: u64 = unsafe { msg_send![device, recommendedMaxWorkingSetSize] };
+    let has_unified: bool = unsafe { msg_send![device, hasUnifiedMemory] };
+
+    let vram_mb = max_vram >> 20;
+
+    vec![Gpu {
+        name,
+        vram_mb,
+        dedicated: !has_unified,
+    }]
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 fn gpus() -> Vec<Gpu> {
     Vec::new()
 }

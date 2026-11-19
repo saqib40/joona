@@ -15,6 +15,7 @@ path = "src/main.rs"
 default = []
 vulkan = ["transcribe-rs/whisper-vulkan"]
 cuda = ["transcribe-rs/whisper-cuda"]
+metal = ["transcribe-rs/whisper-metal"]
 
 [dependencies]
 joona-protocol.workspace = true

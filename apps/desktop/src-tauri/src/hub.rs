@@ -79,7 +79,17 @@ fn display_name() -> Option<String> {
     Some(String::from_utf16_lossy(&buf[..len as usize]))
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+fn display_name() -> Option<String> {
+    let name = objc2_foundation::NSFullUserName().to_string();
+    if name.trim().is_empty() {
+        None
+    } else {
+        Some(name)
+    }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 fn display_name() -> Option<String> {
     None
 }

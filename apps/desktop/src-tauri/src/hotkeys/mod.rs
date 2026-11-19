@@ -8,6 +8,8 @@ pub mod gesture;
 mod record;
 #[cfg(windows)]
 mod windows;
+#[cfg(target_os = "macos")]
+pub mod macos;
 
 pub use gesture::{Action, CancelReason, GestureConfig, Mode, Shortcut};
 pub use record::Recorded;
@@ -16,6 +18,8 @@ use tokio::sync::mpsc::UnboundedSender;
 pub struct Hotkeys {
     #[cfg(windows)]
     inner: windows::HookThread,
+    #[cfg(target_os = "macos")]
+    inner: macos::HookThread,
 }
 
 impl Hotkeys {
@@ -26,7 +30,13 @@ impl Hotkeys {
                 inner: windows::HookThread::start(cfg, tx)?,
             })
         }
-        #[cfg(not(windows))]
+        #[cfg(target_os = "macos")]
+        {
+            Ok(Self {
+                inner: macos::HookThread::start(cfg, tx)?,
+            })
+        }
+        #[cfg(not(any(windows, target_os = "macos")))]
         {
             let _ = (cfg, tx);
             Ok(Self {})
@@ -34,44 +44,44 @@ impl Hotkeys {
     }
 
     pub fn update_config(&self, cfg: GestureConfig) {
-        #[cfg(windows)]
+        #[cfg(any(windows, target_os = "macos"))]
         self.inner.update_config(cfg);
-        #[cfg(not(windows))]
+        #[cfg(not(any(windows, target_os = "macos")))]
         let _ = cfg;
     }
 
     pub fn set_paused(&self, paused: bool) {
-        #[cfg(windows)]
+        #[cfg(any(windows, target_os = "macos"))]
         self.inner.set_paused(paused);
-        #[cfg(not(windows))]
+        #[cfg(not(any(windows, target_os = "macos")))]
         let _ = paused;
     }
 
     /// Tells the gesture machine that the session finished without a gesture,
     /// for example from the stop button or the time limit.
     pub fn session_ended(&self) {
-        #[cfg(windows)]
+        #[cfg(any(windows, target_os = "macos"))]
         self.inner.session_ended();
     }
 
     /// Tells the gesture machine about a hands-free dictation started from
     /// the bar or the tray, so the shortcut and Esc can end it.
     pub fn begin_hands_free(&self) {
-        #[cfg(windows)]
+        #[cfg(any(windows, target_os = "macos"))]
         self.inner.begin_hands_free();
     }
 
     /// Records a new shortcut: until everything is released or Esc is
     /// pressed, keys go to `tx` instead of the gesture machine.
     pub fn record(&self, tx: UnboundedSender<Recorded>) {
-        #[cfg(windows)]
+        #[cfg(any(windows, target_os = "macos"))]
         self.inner.record(tx);
-        #[cfg(not(windows))]
+        #[cfg(not(any(windows, target_os = "macos")))]
         let _ = tx.send(Recorded::Cancelled);
     }
 
     pub fn stop_recording(&self) {
-        #[cfg(windows)]
+        #[cfg(any(windows, target_os = "macos"))]
         self.inner.stop_recording();
     }
 }
@@ -82,7 +92,11 @@ pub fn modifiers_released() -> bool {
     {
         windows::modifiers_released()
     }
-    #[cfg(not(windows))]
+    #[cfg(target_os = "macos")]
+    {
+        macos::modifiers_released()
+    }
+    #[cfg(not(any(windows, target_os = "macos")))]
     {
         true
     }
@@ -90,5 +104,7 @@ pub fn modifiers_released() -> bool {
 
 #[cfg(windows)]
 pub use windows::JOONA_INPUT_MARKER;
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+pub use macos::JOONA_INPUT_MARKER;
+#[cfg(not(any(windows, target_os = "macos")))]
 pub const JOONA_INPUT_MARKER: usize = 0x4A4F_4F4E;

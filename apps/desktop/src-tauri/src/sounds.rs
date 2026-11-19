@@ -99,7 +99,20 @@ pub fn play(cue: Cue) {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+pub fn play(cue: Cue) {
+    use objc2::AnyThread;
+    use objc2_app_kit::NSSound;
+    use objc2_foundation::NSData;
+
+    let data = wav(cue);
+    let ns_data = NSData::with_bytes(data);
+    if let Some(sound) = NSSound::initWithData(NSSound::alloc(), &ns_data) {
+        sound.play();
+    }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn play(_cue: Cue) {}
 
 #[cfg(test)]
