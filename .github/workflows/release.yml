@@ -55,6 +55,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: release
+          # whisper.cpp's cached CMake build records the compiler's path, which
+          # changes when GitHub updates the runner image.
+          env-vars: ImageVersion
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-about

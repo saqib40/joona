@@ -40,6 +40,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: windows
+          # whisper.cpp's cached CMake build records the compiler's path, which
+          # changes when GitHub updates the runner image.
+          env-vars: ImageVersion
       - uses: actions/setup-node@v5
         with:
           node-version: 24
