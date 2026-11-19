@@ -3,6 +3,12 @@
 Each release's notes come from its section here. Joona shows the first line
 when it offers the update, so keep that line to one plain sentence.
 
+## 0.2.0
+
+Better model suggestions on PCs with a graphics card.
+
+- The suggested model only counts your graphics card while "Use the graphics card" is on, since models run on the CPU otherwise. Before, some PCs were offered models too slow for their CPU.
+
 ## 0.1.0
 
 The first release of Joona: free, open-source dictation for Windows that runs on your PC.
