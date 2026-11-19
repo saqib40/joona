@@ -3,6 +3,12 @@
 Each release's notes come from its section here. Joona shows the first line
 when it offers the update, so keep that line to one plain sentence.
 
+## 0.2.1
+
+Fixes the Joona window sometimes opening blank.
+
+- On some PCs, especially the first time after installing, the Joona window opened with only its title bar, so setup never appeared. The window now waits until Joona is ready.
+
 ## 0.2.0
 
 Better model suggestions on PCs with a graphics card.
