@@ -6,10 +6,11 @@
     "apps/desktop"
   ],
   "scripts": {
+    "predev": "node scripts/build-engine.mjs",
     "dev": "npm run tauri dev -w apps/desktop",
     "tauri": "npm run tauri -w apps/desktop --",
     "build": "npm run tauri build -w apps/desktop",
-    "build:engine": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-engine.ps1",
+    "build:engine": "node scripts/build-engine.mjs",
     "test": "npm run test -w apps/desktop && cargo test --workspace",
     "lint": "npm run lint -w apps/desktop",
     "typecheck": "npm run typecheck -w apps/desktop"
