@@ -4,8 +4,9 @@
 
 .DESCRIPTION
     Tauri's externalBin needs binaries/joona-engine-<target-triple>.exe next to tauri.conf.json.
-    GPU variants are copied as joona-engine-<variant>-<triple>.exe; release builds bundle the
-    CPU and Vulkan ones (see tauri.release.conf.json).
+    GPU variants are built in \joona-<variant> at the root of the drive, because whisper.cpp's
+    Vulkan build fails in deeper folders, and copied as joona-engine-<variant>-<triple>.exe.
+    Release builds bundle the CPU and Vulkan ones (see tauri.release.conf.json).
 
     The DLLs the engine needs that a clean Windows may lack (DirectML.dll, which ONNX Runtime
     imports, and the Visual C++ runtime) are copied to target\engine-runtime, which release
@@ -27,18 +28,35 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot "dev-env.ps1")
 
-$cargoArgs = @("build", "-p", "joona-engine", "--target", $Target)
+$cargoArgs = @("build", "-p", "joona-engine")
 if ($Release) { $cargoArgs += "--release" }
 switch ($Variant) {
     "vulkan" { $cargoArgs += @("--features", "vulkan") }
     "cuda" { $cargoArgs += @("--features", "cuda") }
 }
 
+$profileDir = if ($Release) { "release" } else { "debug" }
 $targetDir = if ($env:CARGO_TARGET_DIR) { $env:CARGO_TARGET_DIR } else { Join-Path $root "target" }
-if ($Variant -ne "cpu") {
-    # Keep GPU builds apart so they don't invalidate the CPU build cache.
-    $targetDir = Join-Path $targetDir "engine-$Variant"
+if ($Variant -eq "cpu") {
+    $cargoArgs += @("--target", $Target)
+    $profileOut = Join-Path $targetDir "$Target\$profileDir"
+}
+else {
+    # whisper.cpp builds its Vulkan shader compiler as a CMake project about 125 characters
+    # below Cargo's profile folder, and CMake can't find the compiler for it once the profile
+    # folder is longer than about 30 characters. So GPU builds, which also stay apart from
+    # the CPU build's cache, go in a short folder at the root of the drive, built for this PC
+    # so that the target triple isn't in the path either.
+    $hostTriple = (rustc -vV | Select-String '^host: (.+)$').Matches[0].Groups[1].Value
+    if ($Target -ne $hostTriple) { throw "GPU engines can only be built for this PC's target, $hostTriple." }
+    $targetDir = Join-Path ([IO.Path]::GetPathRoot($root)) "joona-$Variant"
     $cargoArgs += @("--target-dir", $targetDir)
+    $profileOut = Join-Path $targetDir $profileDir
+
+    # ort-sys needs these folders, which dev-env.ps1 only makes in the usual target folder.
+    foreach ($sub in "examples", "deps") {
+        New-Item -ItemType Directory -Force (Join-Path $profileOut "build\$sub") | Out-Null
+    }
 }
 
 Write-Host "cargo $($cargoArgs -join ' ')"
@@ -55,8 +73,7 @@ finally {
     Pop-Location
 }
 
-$profileDir = if ($Release) { "release" } else { "debug" }
-$built = Join-Path $targetDir "$Target\$profileDir\joona-engine.exe"
+$built = Join-Path $profileOut "joona-engine.exe"
 $binDir = Join-Path $root "apps\desktop\src-tauri\binaries"
 New-Item -ItemType Directory -Force $binDir | Out-Null
 
@@ -79,7 +96,6 @@ if (-not $dumpbin -or -not $crt) { throw "dumpbin or the Visual C++ runtime wasn
 
 $runtimeDir = Join-Path $root "target\engine-runtime"
 New-Item -ItemType Directory -Force $runtimeDir | Out-Null
-$profileOut = Split-Path $built
 $imports = & $dumpbin.FullName /nologo /dependents $built | ForEach-Object { $_.Trim() } | Where-Object { $_ -match '^[\w.-]+\.dll$' }
 foreach ($dll in $imports) {
     if ($dll -eq "DirectML.dll") {

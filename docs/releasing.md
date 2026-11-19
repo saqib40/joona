@@ -95,6 +95,8 @@ anyone.
 
 You need what [the README](../README.md#development) lists for development.
 The Vulkan engine also needs the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home).
+It's built in `\joona-vulkan` at the root of the drive, because whisper.cpp's
+Vulkan build fails in deeper folders.
 
 ```powershell
 .\scripts\build-engine.ps1 -Release

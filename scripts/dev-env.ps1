@@ -49,10 +49,8 @@ if ($env:CARGO_TARGET_DIR -and $env:CARGO_TARGET_DIR.Length -gt 60) {
 # <profile>\build\deps under Cargo's current build-directory layout, and its build script
 # fails when those folders don't exist yet.
 $targetRoot = if ($env:CARGO_TARGET_DIR) { $env:CARGO_TARGET_DIR } else { Join-Path (Split-Path -Parent $PSScriptRoot) "target" }
-foreach ($base in $targetRoot, (Join-Path $targetRoot "engine-vulkan"), (Join-Path $targetRoot "engine-cuda")) {
-    foreach ($profile in "debug", "release", "x86_64-pc-windows-msvc\debug", "x86_64-pc-windows-msvc\release") {
-        foreach ($sub in "examples", "deps") {
-            New-Item -ItemType Directory -Force (Join-Path $base "$profile\build\$sub") | Out-Null
-        }
+foreach ($profile in "debug", "release", "x86_64-pc-windows-msvc\debug", "x86_64-pc-windows-msvc\release") {
+    foreach ($sub in "examples", "deps") {
+        New-Item -ItemType Directory -Force (Join-Path $targetRoot "$profile\build\$sub") | Out-Null
     }
 }
