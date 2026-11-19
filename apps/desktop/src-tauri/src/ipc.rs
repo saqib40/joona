@@ -394,10 +394,11 @@ async fn models_overview(state: State<'_, Arc<AppState>>) -> Result<ModelsOvervi
     let settings = state.settings.get();
     let installed = state.library.installed();
     let hardware = state.hardware().clone();
-    let (models, recommended) = overview::cards(catalog(), &installed, &hardware, &settings);
+    let variant = state.engine.variant();
+    let gpu = variant == Variant::Vulkan;
+    let (models, recommended) = overview::cards(catalog(), &installed, &hardware, &settings, gpu);
     let info = state.engine.info().await;
     let status = state.engine.status_if_running().await;
-    let variant = state.engine.variant();
     Ok(ModelsOverview {
         models,
         recommended,

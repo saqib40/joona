@@ -79,14 +79,21 @@ impl Engine {
 }
 
 /// Every catalog model, then the installed models the catalog doesn't know,
-/// and the id of the one to recommend.
+/// and the id of the one to recommend. Graphics cards only count when `gpu`
+/// says the GPU engine is the one running models.
 pub fn cards(
     catalog: &Catalog,
     installed: &[InstalledModel],
     hardware: &Hardware,
     settings: &Settings,
+    gpu: bool,
 ) -> (Vec<ModelCard>, Option<String>) {
     let need = Need::from_settings(settings);
+    let mut hardware = hardware.clone();
+    if !gpu {
+        hardware.gpus.clear();
+    }
+    let hardware = &hardware;
     let recommended = recommend::recommend(catalog, hardware, &need).map(|m| m.id.clone());
     let mut cards: Vec<ModelCard> = catalog
         .models
@@ -149,6 +156,8 @@ mod tests {
     use super::*;
     use crate::models::Manifest;
     use crate::models::catalog::catalog;
+    use crate::models::hardware::Gpu;
+    use crate::settings::{LanguageChoice, LanguageEngine};
 
     #[test]
     fn lists_the_catalog_and_hand_copied_models() {
@@ -177,7 +186,7 @@ mod tests {
             dir: std::path::PathBuf::from(id),
         });
         let settings = Settings::default();
-        let (cards, recommended) = cards(catalog(), &installed, &hardware, &settings);
+        let (cards, recommended) = cards(catalog(), &installed, &hardware, &settings, false);
 
         assert_eq!(cards.len(), catalog().models.len() + 1);
         let small = cards.iter().find(|c| c.id == "whisper-small").unwrap();
@@ -192,5 +201,32 @@ mod tests {
             cards.iter().filter(|c| c.fit == Fit::Recommended).count(),
             1
         );
+    }
+
+    #[test]
+    fn a_graphics_card_counts_only_while_the_gpu_engine_runs() {
+        let hardware = Hardware {
+            cpu: "Test CPU".into(),
+            cores: 6,
+            threads: 6,
+            ram_mb: 16 * 1024 - 300,
+            available_ram_mb: 8 * 1024,
+            avx2: true,
+            gpus: vec![Gpu {
+                name: "Test GPU".into(),
+                vram_mb: 8 * 1024,
+                dedicated: true,
+            }],
+        };
+        let mut settings = Settings::default();
+        settings.languages.speak = vec![LanguageChoice {
+            code: "hi".into(),
+            engine: LanguageEngine::Local,
+        }];
+        settings.languages.output = Some("en".into());
+
+        let pick = |gpu| cards(catalog(), &[], &hardware, &settings, gpu).1;
+        assert_eq!(pick(false).as_deref(), Some("whisper-small"));
+        assert_eq!(pick(true).as_deref(), Some("whisper-large-v3-q5_0"));
     }
 }
