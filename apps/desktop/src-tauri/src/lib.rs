@@ -25,7 +25,7 @@ use std::sync::{Arc, Mutex, OnceLock, RwLock};
 use std::time::Duration;
 
 use joona_protocol::ConfigureParams;
-use tauri::{AppHandle, Manager, RunEvent, WebviewWindow, WindowEvent};
+use tauri::{AppHandle, Manager, RunEvent, WebviewWindow, WebviewWindowBuilder, WindowEvent};
 use tauri_specta::Event;
 
 use crate::ai::LocalAi;
@@ -190,9 +190,11 @@ fn setup(app: &AppHandle, background: bool) -> anyhow::Result<()> {
     }
     app.manage(state.clone());
     app.manage(overlay);
-    if let Some(hub) = app.get_webview_window("hub") {
-        hub::style(&hub, initial.general.theme);
-    }
+    // Pages call commands that need the state as soon as they load, and pages load
+    // while any window is being made. So Tauri makes only the bar before this setup,
+    // and the Hub (`create: false`) is made after the state is managed.
+    let hub = create_window(app, "hub")?;
+    hub::style(&hub, initial.general.theme);
 
     sounds::prepare();
     session::spawn(state.clone(), commands);
@@ -254,6 +256,18 @@ pub fn show_hub(app: &AppHandle, page: Option<&str>) {
     if let Some(page) = page {
         let _ = HubNavigate(page.to_owned()).emit_to(app, "hub");
     }
+}
+
+/// Makes a window that tauri.conf.json describes but leaves to Joona to create.
+fn create_window(app: &AppHandle, label: &str) -> anyhow::Result<WebviewWindow> {
+    let config = app
+        .config()
+        .app
+        .windows
+        .iter()
+        .find(|w| w.label == label)
+        .ok_or_else(|| anyhow::anyhow!("tauri.conf.json has no {label} window"))?;
+    Ok(WebviewWindowBuilder::from_config(app, config)?.build()?)
 }
 
 #[cfg(windows)]
