@@ -1,0 +1,38 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+
+# Tauri
+apps/desktop/src-tauri/gen/
+apps/desktop/src-tauri/binaries/*
+!apps/desktop/src-tauri/binaries/.gitkeep
+
+# Local models and test fixtures downloaded by scripts
+/models/*.bin
+/models/*.onnx
+/models/cache/
+/fixtures/audio/
+
+# Editors and OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs and env
+*.log
+.env
+.env.*
+
+# Signing keys and certificates
+*.key
+*.pfx
+*.p12

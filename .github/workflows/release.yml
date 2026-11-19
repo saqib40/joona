@@ -1,0 +1,110 @@
+name: Release
+
+# Builds the Windows installer and its update signature, and drafts a GitHub
+# release with them and latest.json. Publishing the draft is what makes
+# installed copies offer the update. See docs/releasing.md.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  VULKAN_VERSION: 1.4.313.2
+
+jobs:
+  windows:
+    name: Windows installer
+    runs-on: windows-latest
+    timeout-minutes: 120
+    env:
+      AZURE_SIGNING: ${{ secrets.AZURE_TRUSTED_SIGNING_ACCOUNT != '' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check the version and read the release notes
+        id: release
+        shell: pwsh
+        run: |
+          $version = (Get-Content apps/desktop/package.json -Raw | ConvertFrom-Json).version
+          $crates = [regex]::Match((Get-Content Cargo.toml -Raw), '(?m)^version = "([^"]+)"').Groups[1].Value
+          if ($crates -ne $version) { throw "apps/desktop/package.json says $version but Cargo.toml says $crates." }
+          if ($env:GITHUB_REF_TYPE -eq "tag" -and $env:GITHUB_REF_NAME -ne "v$version") {
+            throw "The tag $env:GITHUB_REF_NAME doesn't match version $version."
+          }
+          $section = [regex]::Match((Get-Content CHANGELOG.md -Raw), "(?ms)^## $([regex]::Escape($version))[^\S\n]*\r?\n(.*?)(?=^## |\z)")
+          if (-not $section.Success) { throw "CHANGELOG.md has no section for $version." }
+          $delimiter = "NOTES_$([guid]::NewGuid().ToString('N'))"
+          Add-Content $env:GITHUB_OUTPUT "notes<<$delimiter"
+          Add-Content $env:GITHUB_OUTPUT $section.Groups[1].Value.Trim()
+          Add-Content $env:GITHUB_OUTPUT $delimiter
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: release
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about
+      - name: Install trusted-signing-cli
+        if: env.AZURE_SIGNING == 'true'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: trusted-signing-cli
+      - run: npm ci
+
+      # The GPU engine compiles whisper.cpp's Vulkan shaders, which needs the SDK.
+      - name: Install the Vulkan SDK
+        shell: pwsh
+        run: |
+          $installer = Join-Path $env:RUNNER_TEMP "vulkan-sdk.exe"
+          curl.exe --fail --location --silent --show-error --output $installer `
+            "https://sdk.lunarg.com/sdk/download/$env:VULKAN_VERSION/windows/vulkansdk-windows-X64-$env:VULKAN_VERSION.exe"
+          $setup = Start-Process $installer -ArgumentList "--accept-licenses", "--default-answer", "--confirm-command", "install" -Wait -PassThru
+          if ($setup.ExitCode -ne 0) { throw "The Vulkan SDK installer failed with exit code $($setup.ExitCode)." }
+          Add-Content $env:GITHUB_ENV "VULKAN_SDK=C:\VulkanSDK\$env:VULKAN_VERSION"
+          Add-Content $env:GITHUB_PATH "C:\VulkanSDK\$env:VULKAN_VERSION\bin"
+
+      - name: Build the engines
+        shell: pwsh
+        run: |
+          ./scripts/build-engine.ps1 -Release
+          ./scripts/build-engine.ps1 -Variant vulkan -Release
+
+      - name: Collect third-party licences
+        run: node scripts/notices.mjs
+
+      - name: Build and draft the release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          AZURE_TRUSTED_SIGNING_ENDPOINT: ${{ secrets.AZURE_TRUSTED_SIGNING_ENDPOINT }}
+          AZURE_TRUSTED_SIGNING_ACCOUNT: ${{ secrets.AZURE_TRUSTED_SIGNING_ACCOUNT }}
+          AZURE_TRUSTED_SIGNING_PROFILE: ${{ secrets.AZURE_TRUSTED_SIGNING_PROFILE }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        with:
+          projectPath: apps/desktop
+          args: --config src-tauri/tauri.release.conf.json
+          tagName: v__VERSION__
+          releaseName: Joona __VERSION__
+          releaseBody: ${{ steps.release.outputs.notes }}
+          releaseDraft: true
+          includeUpdaterJson: true

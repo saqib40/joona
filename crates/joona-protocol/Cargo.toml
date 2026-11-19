@@ -1,0 +1,13 @@
+[package]
+name = "joona-protocol"
+description = "Messages exchanged between the Joona app and its joona-engine sidecar"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+base64.workspace = true
+serde.workspace = true
+serde_json.workspace = true

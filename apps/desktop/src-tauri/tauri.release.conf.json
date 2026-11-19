@@ -1,0 +1,17 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "createUpdaterArtifacts": true,
+    "externalBin": ["binaries/joona-engine", "binaries/joona-engine-vulkan"],
+    "resources": {
+      "../../../target/engine-runtime/*": "",
+      "../../../target/notices/THIRD_PARTY_LICENSES.html": "THIRD_PARTY_LICENSES.html"
+    },
+    "windows": {
+      "signCommand": {
+        "cmd": "powershell",
+        "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "../../../scripts/sign.ps1", "%1"]
+      }
+    }
+  }
+}

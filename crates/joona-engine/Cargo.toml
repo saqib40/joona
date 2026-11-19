@@ -1,0 +1,29 @@
+[package]
+name = "joona-engine"
+description = "Local speech-to-text sidecar for Joona (Whisper, Parakeet, Moonshine, Silero VAD)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "joona-engine"
+path = "src/main.rs"
+
+[features]
+default = []
+vulkan = ["transcribe-rs/whisper-vulkan"]
+cuda = ["transcribe-rs/whisper-cuda"]
+
+[dependencies]
+joona-protocol.workspace = true
+anyhow.workspace = true
+base64.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+regex = "1"
+transcribe-rs = { version = "0.3.12", features = ["whisper-cpp", "onnx", "vad-silero"] }
+whisper-rs = { version = "0.16", features = ["raw-api"] }
+# transcribe-rs is written against this release candidate; later ones changed the session API.
+ort = "=2.0.0-rc.12"

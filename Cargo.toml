@@ -1,0 +1,29 @@
+[workspace]
+resolver = "3"
+members = ["apps/desktop/src-tauri", "crates/joona-protocol", "crates/joona-engine"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+authors = ["Joona contributors"]
+repository = "https://github.com/saqib40/joona"
+
+[workspace.dependencies]
+joona-protocol = { path = "crates/joona-protocol" }
+anyhow = "1"
+base64 = "0.22"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+opt-level = 3
+strip = true

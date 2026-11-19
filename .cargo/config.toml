@@ -1,0 +1,7 @@
+[env]
+# Portable CPU build of ggml: AVX2/FMA baseline instead of tuning for the build machine.
+GGML_NATIVE = "OFF"
+GGML_AVX = "ON"
+GGML_AVX2 = "ON"
+GGML_FMA = "ON"
+GGML_F16C = "ON"

@@ -1,0 +1,100 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Joona",
+  "mainBinaryName": "joona",
+  "version": "../package.json",
+  "identifier": "app.joona.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "hub",
+        "title": "Joona",
+        "url": "index.html",
+        "width": 1040,
+        "height": 680,
+        "minWidth": 860,
+        "minHeight": 560,
+        "center": true,
+        "decorations": false,
+        "transparent": true,
+        "visible": false,
+        "focus": false,
+        "backgroundColor": "#F8F6F1"
+      },
+      {
+        "label": "bar",
+        "title": "Joona Bar",
+        "url": "bar.html",
+        "width": 460,
+        "height": 280,
+        "transparent": true,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "focusable": false,
+        "focus": false,
+        "shadow": false,
+        "resizable": false,
+        "maximizable": false,
+        "minimizable": false,
+        "visible": true,
+        "visibleOnAllWorkspaces": true,
+        "backgroundThrottling": "disabled"
+      }
+    ],
+    "security": {
+      "dangerousDisableAssetCspModification": ["style-src"],
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self' 'unsafe-inline'",
+        "img-src": "'self' data: asset: http://asset.localhost",
+        "font-src": "'self' data:",
+        "media-src": "'self' data: asset: http://asset.localhost",
+        "connect-src": "ipc: http://ipc.localhost"
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "publisher": "Joona contributors",
+    "homepage": "https://github.com/saqib40/joona",
+    "copyright": "Copyright (c) 2026 Joona contributors. MIT licensed.",
+    "category": "Productivity",
+    "shortDescription": "Free, open-source voice dictation",
+    "longDescription": "Joona lets you dictate into any app. Hold Ctrl+Win, speak, and your words are typed where your cursor is. Transcription runs on your PC by default.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
+    "externalBin": ["binaries/joona-engine"],
+    "licenseFile": "../../../LICENSE",
+    "windows": {
+      "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true },
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico",
+        "installerHooks": "windows/hooks.nsh"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDI5MEUwM0Q2M0NFM0VBOEIKUldTTDZ1TTgxZ01PS1lCMnM2Rmp3U2FNL2JiOVN0VGNyUVZPbmE4dFdRdFRpMG1FMS9TTHlnTVcK",
+      "endpoints": ["https://github.com/saqib40/joona/releases/latest/download/latest.json"],
+      "requireSignedVersion": true,
+      "windows": { "installMode": "passive" }
+    }
+  }
+}

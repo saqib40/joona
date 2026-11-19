@@ -1,0 +1,224 @@
+{
+  "version": 1,
+  "converter": [
+    {
+      "path": "mel_filters.npz",
+      "size": 4271,
+      "sha256": "7450ae70723a5ef9d341e3cee628c7cb0177f36ce42c44b7ed2bf3325f0f6d4c",
+      "urls": ["https://raw.githubusercontent.com/openai/whisper/main/whisper/assets/mel_filters.npz"]
+    },
+    {
+      "path": "multilingual.tiktoken",
+      "size": 816730,
+      "sha256": "b34b360dbb493e781e479794586d661700670d65564001f23024971d1f2fa126",
+      "urls": ["https://raw.githubusercontent.com/openai/whisper/main/whisper/assets/multilingual.tiktoken"]
+    },
+    {
+      "path": "gpt2.tiktoken",
+      "size": 835554,
+      "sha256": "306cd27f03c1a714eca7108e03d66b7dc042abe8c258b44c199a7ed9838dd930",
+      "urls": ["https://raw.githubusercontent.com/openai/whisper/main/whisper/assets/gpt2.tiktoken"]
+    }
+  ],
+  "vad": {
+    "path": "silero_vad_v4.onnx",
+    "size": 1807522,
+    "sha256": "a35ebf52fd3ce5f1469b2a36158dba761bc47b973ea3382b3186ca15b1f5af28",
+    "urls": [
+      "https://blob.handy.computer/silero_vad_v4.onnx",
+      "https://raw.githubusercontent.com/snakers4/silero-vad/v4.0/files/silero_vad.onnx"
+    ]
+  },
+  "models": [
+    {
+      "id": "parakeet-tdt-0.6b-v3",
+      "name": "Parakeet v3",
+      "engine": "parakeet",
+      "summary": "Fast and very accurate for English and 24 other European languages.",
+      "languages": ["bg", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "de", "el", "hu", "it", "lv", "lt", "mt", "pl", "pt", "ro", "sk", "sl", "es", "sv", "ru", "uk"],
+      "multilingual": true,
+      "translate": false,
+      "variant": "int8",
+      "speed": 4,
+      "accuracy": 4,
+      "ramMb": 1500,
+      "license": "CC-BY-4.0",
+      "credit": "NVIDIA Parakeet TDT 0.6B v3, ONNX export by Ilya Stupakov",
+      "path": ".",
+      "size": 670619803,
+      "sources": [
+        {
+          "url": "https://blob.handy.computer/parakeet-v3-int8.tar.gz",
+          "format": "tarGz",
+          "size": 478517071,
+          "sha256": "43d37191602727524a7d8c6da0eef11c4ba24320f5b4730f1a2497befc2efa77"
+        }
+      ],
+      "contains": ["encoder-model.int8.onnx", "decoder_joint-model.int8.onnx", "nemo128.onnx", "vocab.txt"]
+    },
+    {
+      "id": "moonshine-base",
+      "name": "Moonshine Base",
+      "engine": "moonshine",
+      "summary": "Small and quick, English only. Good for older PCs.",
+      "languages": ["en"],
+      "multilingual": false,
+      "translate": false,
+      "variant": "base",
+      "speed": 5,
+      "accuracy": 2,
+      "ramMb": 400,
+      "license": "MIT",
+      "credit": "Moonshine by Useful Sensors",
+      "path": ".",
+      "size": 77216803,
+      "sources": [
+        {
+          "url": "https://blob.handy.computer/moonshine-base.tar.gz",
+          "format": "tarGz",
+          "size": 57901034,
+          "sha256": "04bf6ab012cfceebd4ac7cf88c1b31d027bbdd3cd704649b692e2e935236b7e8"
+        }
+      ],
+      "contains": ["encoder_model.onnx", "decoder_model_merged.onnx", "tokenizer.json"]
+    },
+    {
+      "id": "whisper-tiny",
+      "name": "Whisper Tiny",
+      "engine": "whisper",
+      "summary": "The smallest and fastest Whisper, in 99 languages. Rough accuracy.",
+      "multilingual": true,
+      "translate": true,
+      "speed": 5,
+      "accuracy": 1,
+      "ramMb": 400,
+      "license": "MIT",
+      "credit": "OpenAI Whisper, converted to GGML for whisper.cpp",
+      "path": "ggml-tiny.bin",
+      "size": 77691713,
+      "sha256": "be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21",
+      "sources": [
+        { "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin" },
+        {
+          "url": "https://openaipublic.azureedge.net/main/whisper/models/65147644a518d12f04e32d6f3b26facc3f8dd46e5390956a9424a650c0ce22b9/tiny.pt",
+          "format": "openaiPt",
+          "size": 75572083,
+          "sha256": "65147644a518d12f04e32d6f3b26facc3f8dd46e5390956a9424a650c0ce22b9"
+        }
+      ]
+    },
+    {
+      "id": "whisper-base",
+      "name": "Whisper Base",
+      "engine": "whisper",
+      "summary": "Fast, with fair accuracy in 99 languages. Translates into English.",
+      "multilingual": true,
+      "translate": true,
+      "speed": 5,
+      "accuracy": 2,
+      "ramMb": 500,
+      "license": "MIT",
+      "credit": "OpenAI Whisper, converted to GGML for whisper.cpp",
+      "path": "ggml-base.bin",
+      "size": 147951465,
+      "sha256": "60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe",
+      "sources": [
+        { "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin" },
+        {
+          "url": "https://openaipublic.azureedge.net/main/whisper/models/ed3a0b6b1c0edf879ad9b11b1af5a0e6ab5db9205f891f668f8b0e6c6326e34e/base.pt",
+          "format": "openaiPt",
+          "size": 145262807,
+          "sha256": "ed3a0b6b1c0edf879ad9b11b1af5a0e6ab5db9205f891f668f8b0e6c6326e34e"
+        }
+      ]
+    },
+    {
+      "id": "whisper-small",
+      "name": "Whisper Small",
+      "engine": "whisper",
+      "summary": "A good balance of speed and accuracy in 99 languages. Translates into English.",
+      "multilingual": true,
+      "translate": true,
+      "speed": 3,
+      "accuracy": 3,
+      "ramMb": 1000,
+      "license": "MIT",
+      "credit": "OpenAI Whisper, converted to GGML for whisper.cpp",
+      "path": "ggml-small.bin",
+      "size": 487601967,
+      "sha256": "1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b",
+      "sources": [
+        { "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin" },
+        { "url": "https://blob.handy.computer/ggml-small.bin" },
+        {
+          "url": "https://openaipublic.azureedge.net/main/whisper/models/9ecf779972d90ba49c06d968637d720dd632c55bbf19d441fb42bf17a411e794/small.pt",
+          "format": "openaiPt",
+          "size": 483617219,
+          "sha256": "9ecf779972d90ba49c06d968637d720dd632c55bbf19d441fb42bf17a411e794"
+        }
+      ]
+    },
+    {
+      "id": "whisper-large-v3-turbo-q5_0",
+      "name": "Whisper Large v3 Turbo",
+      "engine": "whisper",
+      "summary": "Accurate in 99 languages and quick on most PCs. Can't translate.",
+      "multilingual": true,
+      "translate": false,
+      "variant": "q5_0",
+      "speed": 3,
+      "accuracy": 4,
+      "ramMb": 1200,
+      "license": "MIT",
+      "credit": "OpenAI Whisper, converted to GGML for whisper.cpp",
+      "path": "ggml-large-v3-turbo-q5_0.bin",
+      "size": 574041195,
+      "sha256": "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2",
+      "sources": [
+        { "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin" },
+        { "url": "https://blob.handy.computer/ggml-large-v3-turbo-q5_0.bin" }
+      ]
+    },
+    {
+      "id": "whisper-large-v3-q5_0",
+      "name": "Whisper Large v3",
+      "engine": "whisper",
+      "summary": "The most accurate Whisper, and the best for translating into English. Needs a fast PC.",
+      "multilingual": true,
+      "translate": true,
+      "variant": "q5_0",
+      "speed": 1,
+      "accuracy": 5,
+      "ramMb": 2000,
+      "license": "MIT",
+      "credit": "OpenAI Whisper, converted to GGML for whisper.cpp",
+      "path": "ggml-large-v3-q5_0.bin",
+      "size": 1081140203,
+      "sha256": "d75795ecff3f83b5faa89d1900604ad8c780abd5739fae406de19f23ecd98ad1",
+      "sources": [
+        { "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-q5_0.bin" },
+        { "url": "https://blob.handy.computer/ggml-large-v3-q5_0.bin" }
+      ]
+    }
+  ],
+  "localAi": {
+    "name": "Qwen3 4B Instruct",
+    "license": "Apache-2.0",
+    "credit": "Qwen3 by the Qwen team at Alibaba Cloud, quantized by bartowski, run with llama.cpp (MIT)",
+    "ramMb": 3400,
+    "model": {
+      "path": "Qwen_Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+      "size": 2497280736,
+      "sha256": "2fde00ce69dd4899c70d020845e2638353015bba0fdf161b3eb965f2bca4464e",
+      "urls": [
+        "https://huggingface.co/bartowski/Qwen_Qwen3-4B-Instruct-2507-GGUF/resolve/ae44f08e1392f39c0e474af10c3ff8355c8b6688/Qwen_Qwen3-4B-Instruct-2507-Q4_K_M.gguf"
+      ]
+    },
+    "server": {
+      "path": "llama-b12521-bin-win-cpu-x64.zip",
+      "size": 25555594,
+      "sha256": "bd4e093bce292452248c318d4b176fbfebe1ca43a7f3779ebb3846fe7753653e",
+      "urls": ["https://github.com/ggml-org/llama.cpp/releases/download/b12521/llama-b12521-bin-win-cpu-x64.zip"]
+    }
+  }
+}
