@@ -26,8 +26,7 @@
         "decorations": false,
         "transparent": true,
         "visible": false,
-        "focus": false,
-        "backgroundColor": "#F8F6F1"
+        "focus": false
       },
       {
         "label": "bar",
