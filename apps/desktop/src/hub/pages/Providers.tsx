@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Confirm } from "@/components/ui/confirm";
 import { Group, PageHeader, Row } from "@/components/ui/layout";
+import { isMac } from "@/lib/utils";
 import { SarvamSheet } from "../components/SarvamSheet";
 import { listNames } from "../format";
 import { languageName } from "../languages";
@@ -69,7 +70,16 @@ function Sarvam({ settings }: { settings: Settings }) {
           )
         }
       >
-        <Row title="API key" description={hasKey ? "Saved in Windows Credential Manager." : "Not added yet."}>
+        <Row
+          title="API key"
+          description={
+            hasKey
+              ? isMac
+                ? "Saved in macOS Keychain."
+                : "Saved in Windows Credential Manager."
+              : "Not added yet."
+          }
+        >
           {hasKey ? (
             <>
               <Button disabled={testing} onClick={() => void test()}>

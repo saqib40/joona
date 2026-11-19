@@ -3,6 +3,7 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { isMac } from "@/lib/utils";
 import { fakeHub } from "../testing";
 import { Providers } from "./Providers";
 
@@ -38,7 +39,9 @@ describe("Providers", () => {
     await userEvent.click(within(sheet).getByRole("button", { name: "Turn on Sarvam" }));
     await vi.waitFor(() => expect(saved.at(-1)?.privacy.consented).toEqual(["sarvam"]));
     expect(await screen.findByText("On")).toBeInTheDocument();
-    expect(screen.getByText("Saved in Windows Credential Manager.")).toBeInTheDocument();
+    expect(
+      screen.getByText(isMac ? "Saved in macOS Keychain." : "Saved in Windows Credential Manager."),
+    ).toBeInTheDocument();
   });
 
   it("tests the key, and turning Sarvam off deletes it", async () => {

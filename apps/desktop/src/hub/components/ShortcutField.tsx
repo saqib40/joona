@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Keys } from "@/components/ui/kbd";
 import { commands, events, type Shortcut_Serialize as Shortcut } from "@/lib/bindings";
-import { cn } from "@/lib/utils";
+import { cn, isMac } from "@/lib/utils";
 import { reservedBy, sameShortcut, shortcutKeys, shortcutLabel } from "../shortcut";
 
 /**
@@ -58,7 +58,11 @@ export function ShortcutField({
       const clash = taken?.find((t) => sameShortcut(t.shortcut, shortcut));
       const reserved = reservedBy(shortcut);
       if (!payload.trigger) {
-        setProblem(`${payload.label} on its own would get in the way of typing. Add Ctrl, Alt, Shift or Win, or use a key like F8.`);
+        setProblem(
+          isMac
+            ? `${payload.label} on its own would get in the way of typing. Add Cmd, Option, Ctrl or Shift, or use a key like F8.`
+            : `${payload.label} on its own would get in the way of typing. Add Ctrl, Alt, Shift or Win, or use a key like F8.`,
+        );
       } else if (reserved) {
         setProblem(`${reserved}, so pick another.`);
       } else if (clash) {

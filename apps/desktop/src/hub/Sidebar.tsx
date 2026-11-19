@@ -13,7 +13,8 @@ import {
   ShieldCheck,
   TextQuote,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, isMac } from "@/lib/utils";
+import { MacTrafficLights } from "./components/MacTrafficLights";
 import { type AiChoice, useAi } from "./ai";
 import { languageName } from "./languages";
 import { type Page, type Settings as SettingsType, useHub } from "./store";
@@ -34,7 +35,12 @@ const NAV: { page: Page; label: string; icon: LucideIcon }[] = [
 export function Sidebar() {
   return (
     <nav aria-label="Joona" className="flex w-[212px] shrink-0 flex-col px-3 pb-3">
-      <div data-tauri-drag-region className="flex h-[52px] shrink-0 items-center gap-2.5 px-2">
+      {isMac && (
+        <div data-tauri-drag-region className="pt-3 pb-1 px-1.5">
+          <MacTrafficLights />
+        </div>
+      )}
+      <div data-tauri-drag-region className={cn("flex shrink-0 items-center gap-2.5 px-2", isMac ? "h-10" : "h-[52px]")}>
         <Logo />
       </div>
       <ul className="mt-1 space-y-0.5">

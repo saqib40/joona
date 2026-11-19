@@ -114,12 +114,14 @@ impl Shortcut {
         }
     }
 
-    /// How the shortcut is written in menus and hints, for example `Ctrl+Win`.
+    /// How the shortcut is written in menus and hints, for example `Ctrl+Win` on Windows or `Ctrl+Cmd` on macOS.
     pub fn label(&self) -> String {
+        let win_label = if cfg!(target_os = "macos") { "Cmd" } else { "Win" };
+        let alt_label = if cfg!(target_os = "macos") { "Option" } else { "Alt" };
         let mut parts: Vec<String> = [
             (self.ctrl, "Ctrl"),
-            (self.win, "Win"),
-            (self.alt, "Alt"),
+            (self.win, win_label),
+            (self.alt, alt_label),
             (self.shift, "Shift"),
         ]
         .iter()
@@ -1196,7 +1198,14 @@ mod tests {
 
     #[test]
     fn shortcut_labels() {
+        #[cfg(target_os = "macos")]
+        assert_eq!(Shortcut::CTRL_WIN.label(), "Ctrl+Cmd");
+        #[cfg(not(target_os = "macos"))]
         assert_eq!(Shortcut::CTRL_WIN.label(), "Ctrl+Win");
+
+        #[cfg(target_os = "macos")]
+        assert_eq!(Shortcut::ALT_SHIFT_Z.label(), "Option+Shift+Z");
+        #[cfg(not(target_os = "macos"))]
         assert_eq!(Shortcut::ALT_SHIFT_Z.label(), "Alt+Shift+Z");
         let f13 = Shortcut {
             ctrl: false,

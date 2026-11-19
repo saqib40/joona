@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Keys } from "@/components/ui/kbd";
 import { Card, ProgressBar } from "@/components/ui/layout";
 import { events } from "@/lib/bindings";
-import { cn } from "@/lib/utils";
+import { cn, isMac } from "@/lib/utils";
 import { plural } from "../format";
 import { downloadState, fraction, useModels } from "../models";
 import { shortcutKeys } from "../shortcut";
@@ -16,7 +16,7 @@ type Stage = "waiting" | "listening" | "writing" | "done";
 export function Practice({ next, back }: StepProps) {
   const trigger = useHub((s) => s.settings?.shortcuts.trigger);
   const doubleTap = useHub((s) => s.settings?.shortcuts.doubleTapForHandsFree ?? true);
-  const keys = trigger ? shortcutKeys(trigger) : ["Ctrl", "Win"];
+  const keys = trigger ? shortcutKeys(trigger) : (isMac ? ["Ctrl", "Cmd"] : ["Ctrl", "Win"]);
   const [stage, setStage] = useState<Stage>("waiting");
   const [problem, setProblem] = useState<string | null>(null);
   const [words, setWords] = useState(0);

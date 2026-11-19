@@ -1,4 +1,5 @@
 import type { Shortcut_Serialize as Shortcut } from "@/lib/bindings";
+import { isMac } from "@/lib/utils";
 
 const NAMES: Record<number, string> = {
   0x05: "Mouse 4",
@@ -37,8 +38,8 @@ export function keyName(vk: number): string {
 export function shortcutKeys(s: Shortcut): string[] {
   const keys: string[] = [];
   if (s.ctrl) keys.push("Ctrl");
-  if (s.win) keys.push("Win");
-  if (s.alt) keys.push("Alt");
+  if (s.win) keys.push(isMac ? "Cmd" : "Win");
+  if (s.alt) keys.push(isMac ? "Option" : "Alt");
   if (s.shift) keys.push("Shift");
   if (s.key !== null) keys.push(keyName(s.key));
   return keys;
@@ -49,7 +50,7 @@ export const shortcutLabel = (s: Shortcut) => shortcutKeys(s).join("+");
 export const sameShortcut = (a: Shortcut | null, b: Shortcut | null) =>
   !!a && !!b && a.ctrl === b.ctrl && a.win === b.win && a.alt === b.alt && a.shift === b.shift && a.key === b.key;
 
-const RESERVED: [string, string][] = [
+const RESERVED_WINDOWS: [string, string][] = [
   ["Win+L", "locks Windows"],
   ["Alt+Tab", "switches windows"],
   ["Alt+F4", "closes the app in front"],
@@ -63,9 +64,24 @@ const RESERVED: [string, string][] = [
   ["Ctrl+A", "selects everything"],
 ];
 
-/** Why Windows or most apps already need this shortcut, if they do. */
+const RESERVED_MAC: [string, string][] = [
+  ["Cmd+Q", "quits the app"],
+  ["Cmd+W", "closes the window"],
+  ["Cmd+M", "minimizes the window"],
+  ["Cmd+H", "hides the app"],
+  ["Cmd+Space", "opens Spotlight"],
+  ["Cmd+Tab", "switches apps"],
+  ["Cmd+C", "copies"],
+  ["Cmd+V", "pastes"],
+  ["Cmd+X", "cuts"],
+  ["Cmd+Z", "undoes"],
+  ["Cmd+A", "selects everything"],
+];
+
+/** Why the operating system or most apps already need this shortcut, if they do. */
 export function reservedBy(s: Shortcut): string | null {
   const label = shortcutLabel(s);
-  const hit = RESERVED.find(([keys]) => keys === label);
+  const list = isMac ? RESERVED_MAC : RESERVED_WINDOWS;
+  const hit = list.find(([keys]) => keys === label);
   return hit ? `${hit[0]} ${hit[1]}` : null;
 }

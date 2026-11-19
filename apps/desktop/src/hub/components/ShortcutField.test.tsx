@@ -3,6 +3,7 @@ import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { events, type Recording_Serialize as Recording, type Shortcut_Serialize as Shortcut } from "@/lib/bindings";
+import { isMac } from "@/lib/utils";
 import { ShortcutField } from "./ShortcutField";
 
 const keys = (s: Partial<Shortcut>): Shortcut => ({ ctrl: false, win: false, alt: false, shift: false, key: null, ...s });
@@ -63,11 +64,16 @@ describe("ShortcutField", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("A on its own would get in the way of typing");
 
     await startRecording();
-    await done(keys({ win: true, key: 0x4c }), "Win+L");
-    expect(screen.getByRole("alert")).toHaveTextContent("Win+L locks Windows, so pick another.");
+    if (isMac) {
+      await done(keys({ win: true, key: 0x51 }), "Cmd+Q");
+      expect(screen.getByRole("alert")).toHaveTextContent("Cmd+Q quits the app, so pick another.");
+    } else {
+      await done(keys({ win: true, key: 0x4c }), "Win+L");
+      expect(screen.getByRole("alert")).toHaveTextContent("Win+L locks Windows, so pick another.");
+    }
 
     await startRecording();
-    await done(ALT_SHIFT_Z, "Alt+Shift+Z");
+    await done(ALT_SHIFT_Z, isMac ? "Option+Shift+Z" : "Alt+Shift+Z");
     expect(screen.getByRole("alert")).toHaveTextContent("already the paste last dictation shortcut");
     expect(onChange).not.toHaveBeenCalled();
   });

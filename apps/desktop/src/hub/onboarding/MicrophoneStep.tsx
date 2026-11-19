@@ -8,9 +8,10 @@ import { MicrophoneSelect } from "../components/MicrophoneSelect";
 import { MicTest } from "../components/MicTest";
 import { useLoad } from "../hooks";
 import { useHub } from "../store";
+import { isMac } from "@/lib/utils";
 import { Footer, type StepProps, StepLayout } from "./layout";
 
-const BLOCKED: Record<Exclude<MicAccess, "allowed">, { title: string; fix: string }> = {
+const BLOCKED_WINDOWS: Record<Exclude<MicAccess, "allowed">, { title: string; fix: string }> = {
   blockedForDesktopApps: {
     title: "Windows is keeping desktop apps away from your microphone",
     fix: "In Settings, turn on “Let desktop apps access your microphone”, then come back here.",
@@ -25,6 +26,21 @@ const BLOCKED: Record<Exclude<MicAccess, "allowed">, { title: string; fix: strin
   },
 };
 
+const BLOCKED_MAC: Record<Exclude<MicAccess, "allowed">, { title: string; fix: string }> = {
+  blockedForDesktopApps: {
+    title: "macOS is keeping apps away from your microphone",
+    fix: "In System Settings, turn on Microphone access for Joona, then come back here.",
+  },
+  blockedForUser: {
+    title: "Microphone access is off",
+    fix: "In System Settings, turn on Microphone access for Joona, then come back here.",
+  },
+  blockedForDevice: {
+    title: "Microphone access is off for this Mac",
+    fix: "An administrator has to turn on Microphone access in System Settings. Then come back here.",
+  },
+};
+
 export function MicrophoneStep({ next, back }: StepProps) {
   const device = useHub((s) => s.settings?.general.microphone ?? null);
   // Windows Settings opens in its own window, so look again when the Hub is back in front.
@@ -36,7 +52,8 @@ export function MicrophoneStep({ next, back }: StepProps) {
   }, []);
   const { data: access } = useLoad(() => commands.micAccess(), [visit]);
   const [heard, setHeard] = useState(false);
-  const blocked = access && access !== "allowed" ? BLOCKED[access] : null;
+  const blockedMap = isMac ? BLOCKED_MAC : BLOCKED_WINDOWS;
+  const blocked = access && access !== "allowed" ? blockedMap[access] : null;
 
   return (
     <StepLayout
@@ -58,10 +75,14 @@ export function MicrophoneStep({ next, back }: StepProps) {
               onClick={() =>
                 void commands
                   .openMicPrivacy()
-                  .catch((e) => toast.error("Couldn't open Windows Settings", { description: String(e) }))
+                  .catch((e) =>
+                    toast.error(isMac ? "Couldn't open System Settings" : "Couldn't open Windows Settings", {
+                      description: String(e),
+                    }),
+                  )
               }
             >
-              Open Windows Settings
+              {isMac ? "Open System Settings" : "Open Windows Settings"}
               <ExternalLink />
             </Button>
           </div>

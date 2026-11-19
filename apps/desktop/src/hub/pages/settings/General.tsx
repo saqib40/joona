@@ -5,6 +5,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import type { BarVisibility, Theme } from "@/lib/bindings";
+import { isMac } from "@/lib/utils";
 import { MicrophoneSelect, useMicrophones } from "../../components/MicrophoneSelect";
 import { MicTest } from "../../components/MicTest";
 import { ShortcutField } from "../../components/ShortcutField";
@@ -71,9 +72,12 @@ export function General({ settings }: { settings: Settings }) {
       <Microphone device={general.microphone} />
 
       <Group title="Joona">
-        <Row title="Start with Windows" description="Joona waits quietly in the tray until you need it.">
+        <Row
+          title={isMac ? "Start at login" : "Start with Windows"}
+          description={isMac ? "Joona waits quietly in the menu bar until you need it." : "Joona waits quietly in the tray until you need it."}
+        >
           <Switch
-            aria-label="Start with Windows"
+            aria-label={isMac ? "Start at login" : "Start with Windows"}
             checked={general.launchAtLogin}
             onCheckedChange={(on) => void saveSettings((s) => void (s.general.launchAtLogin = on))}
           />
@@ -122,7 +126,9 @@ function Microphone({ device }: { device: string | null }) {
         title="Microphone"
         description={
           missing
-            ? "This microphone isn't connected. Joona uses the Windows default until it's back."
+            ? (isMac
+                ? "This microphone isn't connected. Joona uses the system default until it's back."
+                : "This microphone isn't connected. Joona uses the Windows default until it's back.")
             : "Joona only listens while you dictate."
         }
       >

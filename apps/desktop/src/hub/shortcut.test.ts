@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Shortcut_Serialize as Shortcut } from "@/lib/bindings";
+import { isMac } from "@/lib/utils";
 import { keyName, reservedBy, sameShortcut, shortcutKeys, shortcutLabel } from "./shortcut";
 
 const keys = (s: Partial<Shortcut>): Shortcut => ({ ctrl: false, win: false, alt: false, shift: false, key: null, ...s });
@@ -25,13 +26,13 @@ describe("shortcuts", () => {
   it("lists modifiers in a fixed order", () => {
     expect(shortcutKeys(keys({ shift: true, win: true, ctrl: true, alt: true, key: 0x20 }))).toEqual([
       "Ctrl",
-      "Win",
-      "Alt",
+      isMac ? "Cmd" : "Win",
+      isMac ? "Option" : "Alt",
       "Shift",
       "Space",
     ]);
-    expect(shortcutLabel(ctrlWin)).toBe("Ctrl+Win");
-    expect(shortcutLabel(altShiftZ)).toBe("Alt+Shift+Z");
+    expect(shortcutLabel(ctrlWin)).toBe(isMac ? "Ctrl+Cmd" : "Ctrl+Win");
+    expect(shortcutLabel(altShiftZ)).toBe(isMac ? "Option+Shift+Z" : "Alt+Shift+Z");
   });
 
   it("compares shortcuts", () => {
@@ -41,9 +42,14 @@ describe("shortcuts", () => {
     expect(sameShortcut(null, null)).toBe(false);
   });
 
-  it("knows the shortcuts Windows and most apps need", () => {
-    expect(reservedBy(keys({ win: true, key: 0x4c }))).toBe("Win+L locks Windows");
-    expect(reservedBy(keys({ ctrl: true, key: 0x56 }))).toBe("Ctrl+V pastes");
+  it("knows the shortcuts the operating system and most apps need", () => {
+    if (isMac) {
+      expect(reservedBy(keys({ win: true, key: 0x51 }))).toBe("Cmd+Q quits the app");
+      expect(reservedBy(keys({ win: true, key: 0x57 }))).toBe("Cmd+W closes the window");
+    } else {
+      expect(reservedBy(keys({ win: true, key: 0x4c }))).toBe("Win+L locks Windows");
+      expect(reservedBy(keys({ ctrl: true, key: 0x56 }))).toBe("Ctrl+V pastes");
+    }
     expect(reservedBy(ctrlWin)).toBeNull();
     expect(reservedBy(altShiftZ)).toBeNull();
   });

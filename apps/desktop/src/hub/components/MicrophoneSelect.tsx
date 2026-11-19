@@ -1,5 +1,6 @@
 import { Select } from "@/components/ui/select";
 import { commands } from "@/lib/bindings";
+import { isMac } from "@/lib/utils";
 import { useLoad } from "../hooks";
 import { saveSettings } from "../settings";
 
@@ -17,7 +18,7 @@ export function MicrophoneSelect({ device, reload, className }: { device: string
   const { devices, missing } = useMicrophones(device, reload);
   const fallback = devices?.find((d) => d.isDefault)?.name;
   const options = [
-    { value: DEFAULT_MIC, label: "Windows default", hint: fallback },
+    { value: DEFAULT_MIC, label: isMac ? "System default" : "Windows default", hint: fallback },
     ...(devices ?? []).map((d) => ({ value: d.id, label: d.name })),
     ...(missing && device ? [{ value: device, label: "Not connected" }] : []),
   ];

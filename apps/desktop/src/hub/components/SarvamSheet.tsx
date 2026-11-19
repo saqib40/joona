@@ -2,6 +2,7 @@ import { type FormEvent, type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { isMac } from "@/lib/utils";
 import { SARVAM, SARVAM_KEYS, SARVAM_PRIVACY, useProviders, useSarvam } from "../providers";
 import { saveSettings } from "../settings";
 import type { Settings } from "../store";
@@ -116,8 +117,7 @@ export function SarvamSheet({
               </p>
             )}
             <p className="mt-2 text-[12px] leading-relaxed text-ink-faint">
-              Create one in your <Link href={SARVAM_KEYS}>Sarvam dashboard</Link>. Joona checks it, keeps it in Windows
-              Credential Manager, and never shows it again.
+              Create one in your <Link href={SARVAM_KEYS}>Sarvam dashboard</Link>. Joona checks it, keeps it in {isMac ? "macOS Keychain" : "Windows Credential Manager"}, and never shows it again.
             </p>
           </div>
         )}

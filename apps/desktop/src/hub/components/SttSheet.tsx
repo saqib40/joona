@@ -5,6 +5,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { commands } from "@/lib/bindings";
+import { isMac } from "@/lib/utils";
 import { looksLikeAddress } from "../ai";
 import { listNames } from "../format";
 import { asFailure, consentedTo, useProviders } from "../providers";
@@ -147,7 +148,7 @@ export function SttSheet({
                       Create one on <TextLink href={p.keysUrl}>{p.name}'s website</TextLink>.{" "}
                     </>
                   )}
-                  Joona checks it, keeps it in Windows Credential Manager, and never shows it again.
+                  Joona checks it, keeps it in {isMac ? "macOS Keychain" : "Windows Credential Manager"}, and never shows it again.
                 </>
               }
             >
@@ -168,7 +169,9 @@ export function SttSheet({
             </Field>
           ) : (
             <div className="mt-5 flex items-center justify-between gap-4 rounded-lg bg-fill px-3.5 py-2.5">
-              <p className="text-[12.5px] text-ink-soft">Your {p.name} key is saved in Windows Credential Manager.</p>
+              <p className="text-[12.5px] text-ink-soft">
+                Your {p.name} key is saved in {isMac ? "macOS Keychain" : "Windows Credential Manager"}.
+              </p>
               <Button size="sm" variant="ghost" onClick={() => setReplacing(true)}>
                 Replace
               </Button>

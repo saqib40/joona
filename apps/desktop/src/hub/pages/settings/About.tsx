@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, Group, ProgressBar, Row } from "@/components/ui/layout";
 import { Switch } from "@/components/ui/switch";
 import { commands, type Folder } from "@/lib/bindings";
+import { isMac } from "@/lib/utils";
 import { useModels } from "../../models";
 import { saveSettings } from "../../settings";
 import { type Settings, useHub } from "../../store";
@@ -44,7 +45,7 @@ export function About({ settings }: { settings: Settings }) {
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-[32px] leading-none text-ink">Joona</h2>
           <p className="mt-1.5 text-[13px] text-ink-soft">
-            Version {info?.version ?? "…"} · {info?.os ?? "Windows"}
+            Version {info?.version ?? "…"} · {info?.os ?? (isMac ? "macOS" : "Windows")}
           </p>
           <p className="mt-0.5 text-[12.5px] text-ink-faint">Free and open source under the MIT licence.</p>
         </div>

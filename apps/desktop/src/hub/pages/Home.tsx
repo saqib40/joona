@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Keys } from "@/components/ui/kbd";
 import { Card, PageHeader } from "@/components/ui/layout";
+import { isMac } from "@/lib/utils";
 import { commands, type HomeStats } from "@/lib/bindings";
 import { formatBytes, formatNumber, greeting } from "../format";
 import { useHistory } from "../history";
@@ -17,7 +18,7 @@ export function Home() {
   const settings = useHub((s) => s.settings);
   const version = useHistory((s) => s.version);
   const { data: stats } = useLoad(() => commands.homeStats(), [version]);
-  const trigger = settings ? shortcutKeys(settings.shortcuts.trigger) : ["Ctrl", "Win"];
+  const trigger = settings ? shortcutKeys(settings.shortcuts.trigger) : (isMac ? ["Ctrl", "Cmd"] : ["Ctrl", "Win"]);
   const doubleTap = settings?.shortcuts.doubleTapForHandsFree ?? true;
 
   return (

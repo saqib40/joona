@@ -1,6 +1,7 @@
 import { Keys } from "@/components/ui/kbd";
 import { Group, Row } from "@/components/ui/layout";
 import { Switch } from "@/components/ui/switch";
+import { isMac } from "@/lib/utils";
 import { saveSettings } from "../../settings";
 import { shortcutKeys } from "../../shortcut";
 import type { Settings } from "../../store";
@@ -25,15 +26,16 @@ export function Experimental({ settings }: { settings: Settings }) {
 export function CommandModeRow({ settings }: { settings: Settings }) {
   const { experimental, shortcuts } = settings;
   const usesAlt = shortcuts.trigger.alt;
+  const altKey = isMac ? "Option" : "Alt";
   return (
     <Row
       title="Command Mode"
       description={
         usesAlt ? (
-          "Not available while your shortcut uses Alt."
+          `Not available while your shortcut uses ${altKey}.`
         ) : (
           <span className="inline-flex flex-wrap items-center gap-1">
-            Select text, hold <Keys keys={[...shortcutKeys(shortcuts.trigger), "Alt"]} /> and say what to change,
+            Select text, hold <Keys keys={[...shortcutKeys(shortcuts.trigger), altKey]} /> and say what to change,
             like “make this friendlier”. With nothing selected, it writes what you ask for. Uses your AI model.
           </span>
         )

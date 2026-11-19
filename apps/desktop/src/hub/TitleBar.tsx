@@ -1,12 +1,13 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { type ReactNode, useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn, isMac } from "@/lib/utils";
 
 /** Drag area and Windows-style caption buttons. Closing hides the Hub; Joona stays in the tray. */
 export function TitleBar() {
   const [maximized, setMaximized] = useState(false);
 
   useEffect(() => {
+    if (isMac) return;
     const win = getCurrentWindow();
     let unlisten: (() => void) | undefined;
     let gone = false;
@@ -18,6 +19,10 @@ export function TitleBar() {
       unlisten?.();
     };
   }, []);
+
+  if (isMac) {
+    return <div data-tauri-drag-region className="h-10 shrink-0" />;
+  }
 
   const win = () => getCurrentWindow();
   return (

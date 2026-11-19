@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
+import { isMac } from "@/lib/utils";
 import { BarMenu } from "./BarMenu";
 import { connect } from "./connect";
 import { Pill } from "./Pill";
@@ -38,7 +39,7 @@ export function Bar() {
 
 function Hint() {
   const show = useBar((s) => s.pillHover && s.state.state === "resting" && !s.menu && s.toasts.length === 0);
-  const shortcut = useBar((s) => s.config?.shortcut ?? "Ctrl+Win");
+  const shortcut = useBar((s) => s.config?.shortcut ?? (isMac ? "Ctrl+Cmd" : "Ctrl+Win"));
   const paused = useBar((s) => s.config?.paused ?? false);
   const [ready, setReady] = useState(false);
 
