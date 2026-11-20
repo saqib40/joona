@@ -1,7 +1,7 @@
 name: Release
 
-# Builds the Windows installer and its update signature, and drafts a GitHub
-# release with them and latest.json. Publishing the draft is what makes
+# Builds the Windows and macOS installers and their update signatures, and drafts
+# a GitHub release with them and latest.json. Publishing the draft is what makes
 # installed copies offer the update. See docs/releasing.md.
 
 on:
@@ -21,32 +21,52 @@ env:
   VULKAN_VERSION: 1.4.313.2
 
 jobs:
+  prepare:
+    name: Prepare release notes
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      notes: ${{ steps.release.outputs.notes }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check version and read release notes
+        id: release
+        run: |
+          version=$(node -p "require('./apps/desktop/package.json').version")
+          crates=$(grep -m1 '^version =' Cargo.toml | cut -d '"' -f2)
+          if [ "$crates" != "$version" ]; then
+            echo "apps/desktop/package.json says $version but Cargo.toml says $crates."
+            exit 1
+          fi
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "The tag $GITHUB_REF_NAME doesn't match version $version."
+            exit 1
+          fi
+          notes=$(node -e "
+            const fs = require('fs');
+            const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
+            const match = changelog.match(/^## ${version}\s*\n([\s\S]*?)(?=^## |\$)/m);
+            if (!match) {
+              console.error('CHANGELOG.md has no section for ${version}.');
+              process.exit(1);
+            }
+            process.stdout.write(match[1].trim());
+          ")
+          echo "version=$version" >> $GITHUB_OUTPUT
+          delimiter="NOTES_$(date +%s%N)"
+          echo "notes<<$delimiter" >> $GITHUB_OUTPUT
+          echo "$notes" >> $GITHUB_OUTPUT
+          echo "$delimiter" >> $GITHUB_OUTPUT
+
   windows:
     name: Windows installer
+    needs: prepare
     runs-on: windows-latest
     timeout-minutes: 120
     env:
       AZURE_SIGNING: ${{ secrets.AZURE_TRUSTED_SIGNING_ACCOUNT != '' }}
     steps:
       - uses: actions/checkout@v5
-
-      - name: Check the version and read the release notes
-        id: release
-        shell: pwsh
-        run: |
-          $version = (Get-Content apps/desktop/package.json -Raw | ConvertFrom-Json).version
-          $crates = [regex]::Match((Get-Content Cargo.toml -Raw), '(?m)^version = "([^"]+)"').Groups[1].Value
-          if ($crates -ne $version) { throw "apps/desktop/package.json says $version but Cargo.toml says $crates." }
-          if ($env:GITHUB_REF_TYPE -eq "tag" -and $env:GITHUB_REF_NAME -ne "v$version") {
-            throw "The tag $env:GITHUB_REF_NAME doesn't match version $version."
-          }
-          $section = [regex]::Match((Get-Content CHANGELOG.md -Raw), "(?ms)^## $([regex]::Escape($version))[^\S\n]*\r?\n(.*?)(?=^## |\z)")
-          if (-not $section.Success) { throw "CHANGELOG.md has no section for $version." }
-          $delimiter = "NOTES_$([guid]::NewGuid().ToString('N'))"
-          Add-Content $env:GITHUB_OUTPUT "notes<<$delimiter"
-          Add-Content $env:GITHUB_OUTPUT $section.Groups[1].Value.Trim()
-          Add-Content $env:GITHUB_OUTPUT $delimiter
-
       - uses: actions/setup-node@v5
         with:
           node-version: 24
@@ -54,7 +74,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          shared-key: release
+          shared-key: release-windows
           # whisper.cpp's cached CMake build records the compiler's path, which
           # changes when GitHub updates the runner image.
           env-vars: ImageVersion
@@ -108,6 +128,54 @@ jobs:
           args: --config src-tauri/tauri.release.conf.json
           tagName: v__VERSION__
           releaseName: Joona __VERSION__
-          releaseBody: ${{ steps.release.outputs.notes }}
+          releaseBody: ${{ needs.prepare.outputs.notes }}
+          releaseDraft: true
+          includeUpdaterJson: true
+
+  macos:
+    name: macOS installer
+    needs: prepare
+    runs-on: macos-14
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: release-macos
+          env-vars: ImageVersion
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about
+      - run: npm ci
+
+      - name: Build the Metal engine
+        run: node scripts/build-engine.mjs --release
+
+      - name: Collect third-party licences
+        run: node scripts/notices.mjs
+
+      - name: Build and draft the release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          projectPath: apps/desktop
+          args: --config src-tauri/tauri.macos.conf.json
+          tagName: v__VERSION__
+          releaseName: Joona __VERSION__
+          releaseBody: ${{ needs.prepare.outputs.notes }}
           releaseDraft: true
           includeUpdaterJson: true

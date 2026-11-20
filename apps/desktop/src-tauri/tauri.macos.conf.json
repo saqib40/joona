@@ -1,0 +1,10 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "createUpdaterArtifacts": true,
+    "externalBin": ["binaries/joona-engine"],
+    "resources": {
+      "../../../target/notices/THIRD_PARTY_LICENSES.html": "THIRD_PARTY_LICENSES.html"
+    }
+  }
+}

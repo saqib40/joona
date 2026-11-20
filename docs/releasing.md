@@ -29,7 +29,7 @@ to download the new installer by hand. If it leaks, someone could sign an
 update that Joona would install, so make a new pair and release the new public
 key straight away.
 
-### Code signing (recommended)
+### Windows Code signing (recommended)
 
 Windows SmartScreen warns people about unsigned installers, and some antivirus
 tools distrust unsigned apps that use keyboard hooks. `scripts/sign.ps1` signs
@@ -43,6 +43,28 @@ leaves them unsigned otherwise:
 - **A code-signing certificate** (`.pfx`). Set `WINDOWS_CERTIFICATE` to the
   file, base64-encoded (`[Convert]::ToBase64String([IO.File]::ReadAllBytes("cert.pfx"))`),
   and `WINDOWS_CERTIFICATE_PASSWORD` to its password.
+
+### macOS Code signing & Notarization (recommended)
+
+macOS Gatekeeper blocks or warns users when opening apps that aren't signed and notarized by Apple. The workflow signs and notarizes the `.app` and `.dmg` automatically when the following repository secrets are set:
+
+1. **Certificate (`APPLE_CERTIFICATE` & `APPLE_CERTIFICATE_PASSWORD`)**:
+   - In [Apple Developer](https://developer.apple.com/account/resources/certificates/list), create a **Developer ID Application** certificate (not Mac App Store or Apple Development).
+   - Download the `.cer` file and double-click to install it in **Keychain Access**.
+   - In Keychain Access, find the certificate under **My Certificates** (`Developer ID Application: Your Name (TEAM_ID)`), right-click it, choose **Export**, and save it as a `.p12` file with a password.
+   - Base64-encode the file:
+     ```bash
+     base64 -i JoonaCert.p12 | pbcopy
+     ```
+   - Add `APPLE_CERTIFICATE` (the base64 string) and `APPLE_CERTIFICATE_PASSWORD` (the password you chose).
+2. **Signing Identity (`APPLE_SIGNING_IDENTITY`)**:
+   - Set to the exact common name of your certificate, e.g. `Developer ID Application: Your Name (TEAM_ID)`.
+3. **Notarization (`APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`)**:
+   - `APPLE_ID`: Your Apple ID email address.
+   - `APPLE_PASSWORD`: An App-Specific Password generated from [appleid.apple.com](https://appleid.apple.com) under **Sign-In and Security › App-Specific Passwords**.
+   - `APPLE_TEAM_ID`: Your 10-character Team ID, visible on the [Membership](https://developer.apple.com/account#MembershipDetailsCard) page.
+
+If these secrets are omitted, the workflow will produce an unsigned `.dmg` and `.app`. Users can run unsigned builds by right-clicking the app and selecting **Open**, or running `xattr -d com.apple.quarantine /Applications/Joona.app`.
 
 [SignPath Foundation](https://signpath.org) signs open-source projects for
 free, but it signs files after the build. The installer's update signature
@@ -67,12 +89,11 @@ workflow doesn't do yet.
    You can also start the workflow from the Actions tab.
 4. The workflow checks that the tag, `apps/desktop/package.json` and
    `Cargo.toml` agree, and then:
-   - builds the CPU and Vulkan (GPU) engines;
-   - collects the third-party licences;
-   - builds and signs the installer, and signs it for the updater;
-   - drafts a release with `Joona_0.2.0_x64-setup.exe`, its `.sig`, and `latest.json`.
-5. Try the installer from the draft on a clean PC or virtual machine, then
-   publish the draft.
+   - **On Windows**: builds CPU and Vulkan engines, packages `Joona_<version>_x64-setup.exe` and updater signature `.sig`.
+   - **On macOS**: builds the Metal engine, packages `Joona_<version>_aarch64.dmg`, `.app.tar.gz`, and updater signature `.sig`.
+   - Collects third-party licenses on each platform.
+   - Drafts a GitHub release with the installers and a unified `latest.json` for multi-platform auto-updates.
+5. Try the installer from the draft on a clean PC or Mac, then publish the draft.
 
 Installed copies read `releases/latest/download/latest.json`, which only
 points at the newest published release. Drafts and pre-releases don't reach

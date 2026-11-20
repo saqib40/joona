@@ -30,8 +30,16 @@ jobs:
         working-directory: apps/desktop
 
   rust:
-    name: Rust (engine, app, tests)
-    runs-on: windows-latest
+    name: Rust (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            cache-key: windows
+          - os: macos-14
+            cache-key: macos
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
@@ -39,7 +47,7 @@ jobs:
           components: clippy, rustfmt
       - uses: Swatinem/rust-cache@v2
         with:
-          shared-key: windows
+          shared-key: ${{ matrix.cache-key }}
           # whisper.cpp's cached CMake build records the compiler's path, which
           # changes when GitHub updates the runner image.
           env-vars: ImageVersion
@@ -49,10 +57,15 @@ jobs:
           cache: npm
       - run: npm ci
       - name: rustfmt
+        if: matrix.os == 'windows-latest'
         run: cargo fmt --all -- --check
-      - name: Build engine sidecar
+      - name: Build engine sidecar (Windows)
+        if: matrix.os == 'windows-latest'
         shell: pwsh
         run: ./scripts/build-engine.ps1
+      - name: Build engine sidecar (macOS)
+        if: matrix.os != 'windows-latest'
+        run: node scripts/build-engine.mjs
       - name: Build frontend (embedded into the app)
         run: npx vite build
         working-directory: apps/desktop
