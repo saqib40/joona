@@ -13,7 +13,7 @@ const SPRING = { type: "spring", stiffness: 520, damping: 40, mass: 0.8 } as con
 export function Pill() {
   const state = useBar((s) => s.state);
   const resting = useBar((s) => s.resting);
-  const hover = useBar((s) => s.pillHover || s.menu !== null);
+  const hover = useBar((s) => s.hover || s.pillHover || s.menu !== null);
   const paused = useBar((s) => s.config?.paused ?? false);
   const setPillHover = useBar((s) => s.setPillHover);
 

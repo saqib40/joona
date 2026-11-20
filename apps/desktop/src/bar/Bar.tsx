@@ -38,7 +38,7 @@ export function Bar() {
 }
 
 function Hint() {
-  const show = useBar((s) => s.pillHover && s.state.state === "resting" && !s.menu && s.toasts.length === 0);
+  const show = useBar((s) => (s.hover || s.pillHover) && s.state.state === "resting" && !s.menu && s.toasts.length === 0);
   const shortcut = useBar((s) => s.config?.shortcut ?? (isMac ? "Ctrl+Cmd" : "Ctrl+Win"));
   const paused = useBar((s) => s.config?.paused ?? false);
   const [ready, setReady] = useState(false);

@@ -338,11 +338,14 @@ mod mac {
             if window.is_null() {
                 return;
             }
-            // NSStatusWindowLevel = 25 keeps the bar above floating utility windows.
-            let _: () = msg_send![window, setLevel: 25i64];
-            // NSWindowCollectionBehaviorCanJoinAllSpaces (1 << 0) | Stationary (1 << 4) | IgnoresCycle (1 << 6) | FullScreenAuxiliary (1 << 8)
-            let behavior: usize = (1 << 0) | (1 << 4) | (1 << 6) | (1 << 8);
+            // kCGOverlayWindowLevelKey = 102 keeps the bar above full-screen apps and floating windows.
+            let _: () = msg_send![window, setLevel: 102i64];
+            // NSWindowCollectionBehaviorCanJoinAllSpaces (1 << 0) | IgnoresCycle (1 << 6) | FullScreenAuxiliary (1 << 8)
+            let behavior: usize = (1 << 0) | (1 << 6) | (1 << 8);
             let _: () = msg_send![window, setCollectionBehavior: behavior];
+            let _: () = msg_send![window, setHidesOnDeactivate: false];
+            let _: () = msg_send![window, setCanHide: false];
+            let _: () = msg_send![window, setAcceptsMouseMovedEvents: true];
             let _: () = msg_send![window, setIgnoresMouseEvents: true];
         });
     }
@@ -363,6 +366,7 @@ mod mac {
                 return;
             }
             if visible {
+                let _: () = msg_send![window, setLevel: 102i64];
                 let _: () = msg_send![window, orderFrontRegardless];
             } else {
                 let _: () = msg_send![window, orderOut: std::ptr::null::<AnyObject>()];
@@ -374,6 +378,7 @@ mod mac {
         run_on_main(move || unsafe {
             let window = window_ptr as *mut AnyObject;
             if !window.is_null() {
+                let _: () = msg_send![window, setLevel: 102i64];
                 let _: () = msg_send![window, orderFrontRegardless];
             }
         });
@@ -426,6 +431,7 @@ mod mac {
                     NSSize::new(BAR_WIDTH, BAR_HEIGHT),
                 );
                 let _: () = msg_send![window, setFrame: new_frame, display: true];
+                let _: () = msg_send![window, setLevel: 102i64];
                 let _: () = msg_send![window, orderFrontRegardless];
             }
         });
@@ -677,6 +683,23 @@ mod win {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_ns_screen_frame() {
+        #[cfg(target_os = "macos")]
+        unsafe {
+            use objc2::runtime::AnyObject;
+            use objc2::{class, msg_send};
+            use objc2_foundation::NSRect;
+            let screens: *mut AnyObject = msg_send![class!(NSScreen), screens];
+            assert!(!screens.is_null());
+            let count: usize = msg_send![screens, count];
+            assert!(count >= 1);
+            let s: *mut AnyObject = msg_send![screens, objectAtIndex: 0usize];
+            let f: NSRect = msg_send![s, frame];
+            assert!(f.size.width > 0.0 && f.size.height > 0.0);
+        }
+    }
 
     #[test]
     fn regions_contain_their_inside_only() {

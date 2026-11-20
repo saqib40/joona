@@ -51,7 +51,7 @@ export const useBar = create<BarStore>((set) => ({
       menu: state.state === "resting" ? s.menu : null,
     })),
   // The webview gets no pointerleave once the window turns click-through again.
-  setHover: (hover) => set((s) => ({ hover, pillHover: hover && s.pillHover })),
+  setHover: (hover) => set((s) => ({ hover, pillHover: hover })),
   setPillHover: (pillHover) => set({ pillHover }),
   addToast: (toast) =>
     set((s) => ({
