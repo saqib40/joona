@@ -27,7 +27,7 @@ pub const BAR_WIDTH: f64 = 460.0;
 pub const BAR_HEIGHT: f64 = 280.0;
 const POLL: Duration = Duration::from_millis(33);
 /// Placement and visibility are checked every this many polls.
-const SLOW_EVERY: u32 = 8;
+const SLOW_EVERY: u32 = 4;
 
 /// A part of the bar that takes the mouse, in CSS pixels from the window's
 /// top-left corner.

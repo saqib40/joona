@@ -131,6 +131,9 @@ pub fn run() {
 }
 
 fn setup(app: &AppHandle, background: bool) -> anyhow::Result<()> {
+    #[cfg(target_os = "macos")]
+    let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
     let settings = SettingsStore::load(paths::settings_file());
     let initial = settings.get();
 
