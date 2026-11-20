@@ -472,7 +472,7 @@ mod mac {
         if regions.is_empty() {
             return false;
         }
-        let frame = lock(&PLACED_FRAME).clone();
+        let frame = *lock(&PLACED_FRAME);
         let Some(PlacedFrame { x, y }) = frame else {
             return false;
         };

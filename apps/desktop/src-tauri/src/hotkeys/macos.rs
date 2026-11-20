@@ -341,10 +341,10 @@ fn run_tap_thread(
                         (CGEventFlags::CGEventFlagShift, vk::LSHIFT),
                         (CGEventFlags::CGEventFlagAlphaShift, vk::CAPITAL),
                     ] {
-                        if flags.contains(flag_bit) != last.contains(flag_bit) {
-                            if feed(vk_code, flags.contains(flag_bit)) {
-                                swallow = true;
-                            }
+                        if flags.contains(flag_bit) != last.contains(flag_bit)
+                            && feed(vk_code, flags.contains(flag_bit))
+                        {
+                            swallow = true;
                         }
                     }
                     if swallow {
@@ -356,10 +356,8 @@ fn run_tap_thread(
 
             if matches!(etype, CGEventType::KeyDown | CGEventType::KeyUp) {
                 let down = matches!(etype, CGEventType::KeyDown);
-                if let Some(vk_code) = mac_keycode_to_vk(keycode) {
-                    if feed(vk_code, down) {
-                        return CallbackResult::Drop;
-                    }
+                if mac_keycode_to_vk(keycode).is_some_and(|vk_code| feed(vk_code, down)) {
+                    return CallbackResult::Drop;
                 }
             }
 
