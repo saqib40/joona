@@ -261,7 +261,7 @@ fn run(shared: Arc<Shared>) {
                 mac::show(window_handle, visible);
                 shown = visible;
             }
-            if shown && (kick || tick.is_multiple_of(SLOW_EVERY * 4)) {
+            if shown {
                 mac::raise(window_handle);
             }
         }
@@ -332,21 +332,41 @@ mod mac {
         }
     }
 
+    unsafe extern "C" {
+        fn object_setClass(obj: *mut AnyObject, cls: *const objc2::runtime::AnyClass) -> *const objc2::runtime::AnyClass;
+    }
+
     pub fn setup_window(window_ptr: usize) {
         run_on_main(move || unsafe {
             let window = window_ptr as *mut AnyObject;
             if window.is_null() {
                 return;
             }
+            // Dynamically swizzle the NSWindow to an NSPanel so that macOS treats it
+            // as a non-activating floating utility panel capable of joining full-screen spaces.
+            let panel_class = class!(NSPanel);
+            let _: *const objc2::runtime::AnyClass = object_setClass(window, panel_class as *const _);
+            let _: () = msg_send![window, setFloatingPanel: true];
+            let _: () = msg_send![window, setBecomesKeyOnlyIfNeeded: true];
+
+            // NSWindowStyleMaskNonactivatingPanel = 1 << 7 (128)
+            let style_mask: usize = msg_send![window, styleMask];
+            let _: () = msg_send![window, setStyleMask: style_mask | (1 << 7)];
+
             // kCGOverlayWindowLevelKey = 102 keeps the bar above full-screen apps and floating windows.
             let _: () = msg_send![window, setLevel: 102i64];
-            // NSWindowCollectionBehaviorCanJoinAllSpaces (1 << 0) | IgnoresCycle (1 << 6) | FullScreenAuxiliary (1 << 8)
-            let behavior: usize = (1 << 0) | (1 << 6) | (1 << 8);
+
+            // NSWindowCollectionBehaviorCanJoinAllSpaces (1 << 0)
+            // NSWindowCollectionBehaviorIgnoresCycle (1 << 6)
+            // NSWindowCollectionBehaviorFullScreenAuxiliary (1 << 8)
+            // NSWindowCollectionBehaviorCanJoinAllApplications (1 << 18)
+            let behavior: usize = (1 << 0) | (1 << 6) | (1 << 8) | (1 << 18);
             let _: () = msg_send![window, setCollectionBehavior: behavior];
             let _: () = msg_send![window, setHidesOnDeactivate: false];
             let _: () = msg_send![window, setCanHide: false];
             let _: () = msg_send![window, setAcceptsMouseMovedEvents: true];
             let _: () = msg_send![window, setIgnoresMouseEvents: true];
+            let _: () = msg_send![window, orderFrontRegardless];
         });
     }
 
@@ -366,6 +386,8 @@ mod mac {
                 return;
             }
             if visible {
+                let behavior: usize = (1 << 0) | (1 << 6) | (1 << 8) | (1 << 18);
+                let _: () = msg_send![window, setCollectionBehavior: behavior];
                 let _: () = msg_send![window, setLevel: 102i64];
                 let _: () = msg_send![window, orderFrontRegardless];
             } else {
@@ -378,6 +400,8 @@ mod mac {
         run_on_main(move || unsafe {
             let window = window_ptr as *mut AnyObject;
             if !window.is_null() {
+                let behavior: usize = (1 << 0) | (1 << 6) | (1 << 8) | (1 << 18);
+                let _: () = msg_send![window, setCollectionBehavior: behavior];
                 let _: () = msg_send![window, setLevel: 102i64];
                 let _: () = msg_send![window, orderFrontRegardless];
             }

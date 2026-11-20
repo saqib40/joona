@@ -61,6 +61,16 @@ const WARM_UP_DELAY: Duration = Duration::from_millis(1500);
 const PRUNE_EVERY: Duration = Duration::from_secs(6 * 60 * 60);
 
 pub fn run() {
+    #[cfg(target_os = "macos")]
+    unsafe {
+        use objc2::runtime::AnyObject;
+        use objc2::{class, msg_send};
+        let app: *mut AnyObject = msg_send![class!(NSApplication), sharedApplication];
+        // NSApplicationActivationPolicyAccessory = 1: Must be set before any windows
+        // are constructed so that overlay windows can join all Spaces and full-screen apps.
+        let _: () = msg_send![app, setActivationPolicy: 1i64];
+    }
+
     let _log = init_logging();
     if std::env::args().any(|a| a == FORGET_KEYS_FLAG) {
         forget_keys();
