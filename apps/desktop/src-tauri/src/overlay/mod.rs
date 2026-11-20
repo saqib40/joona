@@ -340,8 +340,8 @@ mod mac {
             }
             // NSStatusWindowLevel = 25 keeps the bar above floating utility windows.
             let _: () = msg_send![window, setLevel: 25i64];
-            // NSWindowCollectionBehaviorCanJoinAllSpaces (1 << 0) | Stationary (1 << 4) | IgnoresCycle (1 << 6)
-            let behavior: usize = (1 << 0) | (1 << 4) | (1 << 6);
+            // NSWindowCollectionBehaviorCanJoinAllSpaces (1 << 0) | Stationary (1 << 4) | IgnoresCycle (1 << 6) | FullScreenAuxiliary (1 << 8)
+            let behavior: usize = (1 << 0) | (1 << 4) | (1 << 6) | (1 << 8);
             let _: () = msg_send![window, setCollectionBehavior: behavior];
             let _: () = msg_send![window, setIgnoresMouseEvents: true];
         });
@@ -426,6 +426,7 @@ mod mac {
                     NSSize::new(BAR_WIDTH, BAR_HEIGHT),
                 );
                 let _: () = msg_send![window, setFrame: new_frame, display: true];
+                let _: () = msg_send![window, orderFrontRegardless];
             }
         });
     }
