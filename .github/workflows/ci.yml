@@ -38,7 +38,7 @@ jobs:
         include:
           - os: windows-latest
             cache-key: windows
-          - os: macos-14
+          - os: macos-latest
             cache-key: macos
     steps:
       - uses: actions/checkout@v5

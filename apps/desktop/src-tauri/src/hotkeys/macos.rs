@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use core_foundation::base::TCFType;
 use core_foundation::boolean::CFBoolean;
 use core_foundation::dictionary::CFDictionary;
-use core_foundation::runloop::{kCFRunLoopCommonModes, CFRunLoop};
+use core_foundation::runloop::{CFRunLoop, kCFRunLoopCommonModes};
 use core_foundation::string::CFString;
 use core_graphics::event::{
     CGEventFlags, CGEventTap, CGEventTapLocation, CGEventTapOptions, CGEventTapPlacement,
@@ -30,7 +30,8 @@ unsafe extern "C" {
 #[link(name = "ApplicationServices", kind = "framework")]
 unsafe extern "C" {
     fn AXIsProcessTrusted() -> bool;
-    fn AXIsProcessTrustedWithOptions(options: core_foundation::dictionary::CFDictionaryRef) -> bool;
+    fn AXIsProcessTrustedWithOptions(options: core_foundation::dictionary::CFDictionaryRef)
+    -> bool;
 }
 
 /// Checks whether macOS Accessibility permission has been granted, optionally showing the system prompt.
@@ -47,7 +48,9 @@ pub fn is_accessibility_trusted(prompt: bool) -> bool {
 
 /// Returns whether all modifier keys (Command, Shift, Control, Option) are physically released.
 pub fn modifiers_released() -> bool {
-    let flags = unsafe { CGEventSourceFlagsState(0 /* CombinedSessionState */) };
+    let flags = unsafe {
+        CGEventSourceFlagsState(0 /* CombinedSessionState */)
+    };
     // Command: 0x00100000, Shift: 0x00020000, Control: 0x00040000, Option: 0x00080000
     (flags & 0x001E0000) == 0
 }
@@ -255,14 +258,16 @@ fn modifier_from_keycode(code: u16, flags: CGEventFlags) -> Option<(u16, bool)> 
             vk::RCONTROL,
             flags.contains(CGEventFlags::CGEventFlagControl),
         )),
-        KeyCode::OPTION => Some((vk::LMENU, flags.contains(CGEventFlags::CGEventFlagAlternate))),
-        KeyCode::RIGHT_OPTION => {
-            Some((vk::RMENU, flags.contains(CGEventFlags::CGEventFlagAlternate)))
-        }
+        KeyCode::OPTION => Some((
+            vk::LMENU,
+            flags.contains(CGEventFlags::CGEventFlagAlternate),
+        )),
+        KeyCode::RIGHT_OPTION => Some((
+            vk::RMENU,
+            flags.contains(CGEventFlags::CGEventFlagAlternate),
+        )),
         KeyCode::SHIFT => Some((vk::LSHIFT, flags.contains(CGEventFlags::CGEventFlagShift))),
-        KeyCode::RIGHT_SHIFT => {
-            Some((vk::RSHIFT, flags.contains(CGEventFlags::CGEventFlagShift)))
-        }
+        KeyCode::RIGHT_SHIFT => Some((vk::RSHIFT, flags.contains(CGEventFlags::CGEventFlagShift))),
         KeyCode::CAPS_LOCK => Some((
             vk::CAPITAL,
             flags.contains(CGEventFlags::CGEventFlagAlphaShift),
@@ -311,8 +316,7 @@ fn run_tap_thread(
                 return CallbackResult::Keep;
             }
 
-            let keycode =
-                event.get_integer_value_field(EventField::KEYBOARD_EVENT_KEYCODE) as u16;
+            let keycode = event.get_integer_value_field(EventField::KEYBOARD_EVENT_KEYCODE) as u16;
 
             if matches!(etype, CGEventType::FlagsChanged) {
                 let flags = event.get_flags();

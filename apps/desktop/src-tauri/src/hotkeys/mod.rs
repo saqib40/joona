@@ -5,11 +5,11 @@
 //! stub until they have their own hook.
 
 pub mod gesture;
+#[cfg(target_os = "macos")]
+pub mod macos;
 mod record;
 #[cfg(windows)]
 mod windows;
-#[cfg(target_os = "macos")]
-pub mod macos;
 
 pub use gesture::{Action, CancelReason, GestureConfig, Mode, Shortcut};
 pub use record::Recorded;
@@ -102,9 +102,9 @@ pub fn modifiers_released() -> bool {
     }
 }
 
-#[cfg(windows)]
-pub use windows::JOONA_INPUT_MARKER;
 #[cfg(target_os = "macos")]
 pub use macos::JOONA_INPUT_MARKER;
+#[cfg(windows)]
+pub use windows::JOONA_INPUT_MARKER;
 #[cfg(not(any(windows, target_os = "macos")))]
 pub const JOONA_INPUT_MARKER: usize = 0x4A4F_4F4E;

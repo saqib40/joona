@@ -116,8 +116,16 @@ impl Shortcut {
 
     /// How the shortcut is written in menus and hints, for example `Ctrl+Win` on Windows or `Ctrl+Cmd` on macOS.
     pub fn label(&self) -> String {
-        let win_label = if cfg!(target_os = "macos") { "Cmd" } else { "Win" };
-        let alt_label = if cfg!(target_os = "macos") { "Option" } else { "Alt" };
+        let win_label = if cfg!(target_os = "macos") {
+            "Cmd"
+        } else {
+            "Win"
+        };
+        let alt_label = if cfg!(target_os = "macos") {
+            "Option"
+        } else {
+            "Alt"
+        };
         let mut parts: Vec<String> = [
             (self.ctrl, "Ctrl"),
             (self.win, win_label),

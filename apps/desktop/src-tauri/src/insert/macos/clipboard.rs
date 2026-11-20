@@ -60,7 +60,9 @@ impl Clipboard {
     pub fn restore(&self, snapshot: Snapshot, force: bool) -> anyhow::Result<bool> {
         let pb = NSPasteboard::generalPasteboard();
         let current = pb.changeCount();
-        let expected = self.last_change_count.load(std::sync::atomic::Ordering::Relaxed);
+        let expected = self
+            .last_change_count
+            .load(std::sync::atomic::Ordering::Relaxed);
 
         if !force && current != expected {
             // Another application modified the clipboard while we were pasting.

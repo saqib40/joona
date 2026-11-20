@@ -135,8 +135,10 @@ jobs:
   macos:
     name: macOS installer
     needs: prepare
-    runs-on: macos-14
+    runs-on: macos-latest
     timeout-minutes: 120
+    env:
+      HAS_APPLE_API_KEY: ${{ secrets.APPLE_API_KEY_CONTENT != '' }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -160,7 +162,7 @@ jobs:
         run: node scripts/notices.mjs
 
       - name: Setup App Store Connect Private Key
-        if: ${{ secrets.APPLE_API_KEY_CONTENT != '' }}
+        if: env.HAS_APPLE_API_KEY == 'true'
         run: |
           mkdir -p "$HOME/.appstoreconnect/private_keys"
           echo "${{ secrets.APPLE_API_KEY_CONTENT }}" > "$HOME/.appstoreconnect/private_keys/AuthKey_${{ secrets.APPLE_API_KEY }}.p8"

@@ -7,20 +7,20 @@
 //! on the clipboard for the user to paste by hand. Typing sends the text as
 //! Unicode key presses instead, for apps where Ctrl+V doesn't paste.
 
-#[cfg(windows)]
-mod windows;
 #[cfg(target_os = "macos")]
 mod macos;
+#[cfg(windows)]
+mod windows;
 
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-#[cfg(windows)]
-pub use windows::{Inserter, foreground};
 #[cfg(target_os = "macos")]
 pub use macos::{Inserter, foreground};
+#[cfg(windows)]
+pub use windows::{Inserter, foreground};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "snake_case")]

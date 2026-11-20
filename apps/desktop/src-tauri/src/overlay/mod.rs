@@ -256,7 +256,8 @@ fn run(shared: Arc<Shared>) {
         if kick || tick.is_multiple_of(SLOW_EVERY) {
             mac::place_at_bottom_center(window_handle);
             shared.report_resting(shared.resting_wanted(false));
-            let visible = dictating || !regions.is_empty() || shared.resting.load(Ordering::Relaxed);
+            let visible =
+                dictating || !regions.is_empty() || shared.resting.load(Ordering::Relaxed);
             if visible != shown {
                 mac::show(window_handle, visible);
                 shown = visible;
@@ -293,8 +294,8 @@ fn run(shared: Arc<Shared>) {
 mod mac {
     use std::sync::Mutex;
 
-    use objc2::{class, msg_send};
     use objc2::runtime::AnyObject;
+    use objc2::{class, msg_send};
     use objc2_foundation::{NSPoint, NSRect, NSSize};
 
     use super::{BAR_HEIGHT, BAR_WIDTH, Region, lock};
@@ -333,7 +334,10 @@ mod mac {
     }
 
     unsafe extern "C" {
-        fn object_setClass(obj: *mut AnyObject, cls: *const objc2::runtime::AnyClass) -> *const objc2::runtime::AnyClass;
+        fn object_setClass(
+            obj: *mut AnyObject,
+            cls: *const objc2::runtime::AnyClass,
+        ) -> *const objc2::runtime::AnyClass;
     }
 
     pub fn setup_window(window_ptr: usize) {
@@ -345,7 +349,8 @@ mod mac {
             // Dynamically swizzle the NSWindow to an NSPanel so that macOS treats it
             // as a non-activating floating utility panel capable of joining full-screen spaces.
             let panel_class = class!(NSPanel);
-            let _: *const objc2::runtime::AnyClass = object_setClass(window, panel_class as *const _);
+            let _: *const objc2::runtime::AnyClass =
+                object_setClass(window, panel_class as *const _);
             let _: () = msg_send![window, setFloatingPanel: true];
             let _: () = msg_send![window, setBecomesKeyOnlyIfNeeded: true];
 
@@ -450,10 +455,7 @@ mod mac {
             if current != Some(PlacedFrame { x, y }) {
                 *lock(&PLACED_FRAME) = Some(PlacedFrame { x, y });
 
-                let new_frame = NSRect::new(
-                    NSPoint::new(x, y),
-                    NSSize::new(BAR_WIDTH, BAR_HEIGHT),
-                );
+                let new_frame = NSRect::new(NSPoint::new(x, y), NSSize::new(BAR_WIDTH, BAR_HEIGHT));
                 let _: () = msg_send![window, setFrame: new_frame, display: true];
                 let _: () = msg_send![window, setLevel: 102i64];
                 let _: () = msg_send![window, orderFrontRegardless];
