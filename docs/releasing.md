@@ -59,7 +59,13 @@ macOS Gatekeeper blocks or warns users when opening apps that aren't signed and 
    - Add `APPLE_CERTIFICATE` (the base64 string) and `APPLE_CERTIFICATE_PASSWORD` (the password you chose).
 2. **Signing Identity (`APPLE_SIGNING_IDENTITY`)**:
    - Set to the exact common name of your certificate, e.g. `Developer ID Application: Your Name (TEAM_ID)`.
-3. **Notarization (`APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`)**:
+3. **Notarization**:
+   Either using an **App Store Connect API Key** (recommended):
+   - `APPLE_API_KEY`: Key ID (e.g. `BA2N2G58H8`).
+   - `APPLE_API_ISSUER`: Issuer ID (e.g. `3cd371c0-28c2-4dc6-b9a9-06f77566cb3a`).
+   - `APPLE_API_KEY_CONTENT`: Contents of the `.p8` private key file (`AuthKey_BA2N2G58H8.p8`).
+
+   Or using an **Apple ID & App-Specific Password**:
    - `APPLE_ID`: Your Apple ID email address.
    - `APPLE_PASSWORD`: An App-Specific Password generated from [appleid.apple.com](https://appleid.apple.com) under **Sign-In and Security › App-Specific Passwords**.
    - `APPLE_TEAM_ID`: Your 10-character Team ID, visible on the [Membership](https://developer.apple.com/account#MembershipDetailsCard) page.
