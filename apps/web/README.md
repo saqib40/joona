@@ -27,5 +27,7 @@ The site is a single folder, so it can be published with GitHub Pages as-is:
 1. Commit `apps/web` to your branch.
 2. On GitHub, enable Pages with the source pointed at your branch and the
    `apps/web` folder (GitHub Pages supports choosing the folder).
-   Alternatively run the deploy-pages Action flow with `path: apps/web`.
+   Alternatively enable Pages with the source set to **GitHub Actions** — the
+   new `.github/workflows/pages.yml` publishes `apps/web/` on every push to
+   main.
 3. GitHub assigns the Pages URL; the page adapts to light/dark mode.
