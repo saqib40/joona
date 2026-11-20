@@ -3,6 +3,16 @@
 Each release's notes come from its section here. Joona shows the first line
 when it offers the update, so keep that line to one plain sentence.
 
+## 0.2.2
+
+Adds macOS support and cross-platform releases for Windows and macOS.
+
+- Joona is now available natively on macOS with Apple Silicon (M-series) and Intel support.
+- Non-activating floating bar that stays visible across full-screen spaces and desktops.
+- Full keyboard accessibility and global shortcut support (Ctrl+Cmd).
+- High-performance local Metal acceleration for Whisper models.
+- Signed and notarized installer (.dmg) and updater builds for macOS alongside Windows installers.
+
 ## 0.2.1
 
 Fixes the Joona window sometimes opening blank.
