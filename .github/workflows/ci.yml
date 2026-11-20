@@ -69,12 +69,12 @@ jobs:
       - name: Build frontend (embedded into the app)
         run: npx vite build
         working-directory: apps/desktop
-      - name: Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
-      - name: Tests
-        run: cargo test --workspace
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-about
       - name: Third-party licences
         run: node scripts/notices.mjs
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Tests
+        run: cargo test --workspace
