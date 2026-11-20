@@ -267,6 +267,10 @@ main {
   margin-top: 28px;
 }
 
+.feature-card:last-child {
+  grid-column: 1 / -1;
+}
+
 .feature-card {
   display: flex;
   flex-direction: column;
