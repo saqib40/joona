@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   TextQuote,
 } from "lucide-react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { cn, isMac } from "@/lib/utils";
 import { MacTrafficLights } from "./components/MacTrafficLights";
 import { type AiChoice, useAi } from "./ai";
@@ -40,7 +41,11 @@ export function Sidebar() {
           <MacTrafficLights />
         </div>
       )}
-      <div data-tauri-drag-region className={cn("flex shrink-0 items-center gap-2.5 px-2", isMac ? "h-10" : "h-[52px]")}>
+      <div
+        data-tauri-drag-region
+        onDoubleClick={() => void getCurrentWindow().toggleMaximize()}
+        className={cn("flex shrink-0 items-center gap-2.5 px-2", isMac ? "h-10" : "h-[52px]")}
+      >
         <Logo />
       </div>
       <ul className="mt-1 space-y-0.5">

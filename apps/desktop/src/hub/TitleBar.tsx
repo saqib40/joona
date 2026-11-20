@@ -21,7 +21,13 @@ export function TitleBar() {
   }, []);
 
   if (isMac) {
-    return <div data-tauri-drag-region className="h-10 shrink-0" />;
+    return (
+      <div
+        data-tauri-drag-region
+        onDoubleClick={() => void getCurrentWindow().toggleMaximize()}
+        className="h-10 shrink-0"
+      />
+    );
   }
 
   const win = () => getCurrentWindow();

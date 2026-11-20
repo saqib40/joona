@@ -1,9 +1,66 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export function MacTrafficLights({ className }: { className?: string }) {
   const [hovered, setHovered] = useState(false);
+  const [altPressed, setAltPressed] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Alt" || e.altKey) setAltPressed(true);
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "Alt" || !e.altKey) setAltPressed(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    try {
+      const win = getCurrentWindow();
+      void win.isFullscreen().then(setFullscreen).catch(() => {});
+      void win
+        .onResized(() => {
+          void win.isFullscreen().then(setFullscreen).catch(() => {});
+        })
+        .then((u) => {
+          unlisten = u;
+        })
+        .catch(() => {});
+    } catch {}
+    return () => unlisten?.();
+  }, []);
+
+  const handleGreen = async (e: React.MouseEvent) => {
+    const win = getCurrentWindow();
+    if (e.altKey || altPressed) {
+      // Option + Click = Zoom (Maximize without fullscreen)
+      await win.toggleMaximize();
+    } else {
+      // Normal click = Fullscreen (occupies the whole screen)
+      try {
+        const isFs = await win.isFullscreen();
+        await win.setFullscreen(!isFs);
+        setFullscreen(!isFs);
+      } catch {
+        try {
+          await win.setSimpleFullscreen(!fullscreen);
+          setFullscreen(!fullscreen);
+        } catch {
+          await win.toggleMaximize();
+        }
+      }
+    }
+  };
+
   const win = () => getCurrentWindow();
 
   return (
@@ -47,8 +104,8 @@ export function MacTrafficLights({ className }: { className?: string }) {
       </button>
       <button
         type="button"
-        aria-label="Zoom"
-        onClick={() => void win().toggleMaximize()}
+        aria-label={altPressed ? "Zoom" : fullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+        onClick={(e) => void handleGreen(e)}
         className="relative flex h-3 w-3 items-center justify-center rounded-full border border-[#1aab29] bg-[#27c93f] active:brightness-90"
       >
         <svg
@@ -58,7 +115,13 @@ export function MacTrafficLights({ className }: { className?: string }) {
             hovered ? "opacity-100" : "opacity-0"
           )}
         >
-          <path d="M2.5 2.5l5 5M2.5 2.5h3.5M2.5 2.5v3.5M7.5 7.5l-5-5M7.5 7.5h-3.5M7.5 7.5v-3.5" />
+          {altPressed ? (
+            <path d="M5 2v6M2 5h6" />
+          ) : fullscreen ? (
+            <path d="M4.5 2.5v2H2.5M4.5 4.5L1.5 1.5M5.5 7.5v-2h2M5.5 5.5l3 3" />
+          ) : (
+            <path d="M2 4.5V2h2.5M2 2l3 3M8 5.5V8H5.5M8 8l-3-3" />
+          )}
         </svg>
       </button>
     </div>

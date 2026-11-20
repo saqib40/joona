@@ -35,6 +35,9 @@ pub fn mica() -> bool {
 /// Applies the theme to the title bar and, on Windows 11, the Mica backdrop
 /// in the same theme.
 pub fn style(window: &WebviewWindow, theme: Theme) {
+    #[cfg(target_os = "macos")]
+    setup_macos_window(window);
+
     let _ = window.set_theme(match theme {
         Theme::System => None,
         Theme::Light => Some(tauri::Theme::Light),
@@ -58,6 +61,18 @@ pub fn style(window: &WebviewWindow, theme: Theme) {
         .inspect_err(|e| tracing::warn!("couldn't apply Mica: {e}"))
         .is_ok();
     MICA.store(applied, Ordering::Relaxed);
+}
+
+#[cfg(target_os = "macos")]
+fn setup_macos_window(window: &WebviewWindow) {
+    if let Ok(handle) = window.ns_window() {
+        unsafe {
+            let ns_window = &*(handle as *const objc2_app_kit::NSWindow);
+            let mut cb = ns_window.collectionBehavior();
+            cb |= objc2_app_kit::NSWindowCollectionBehavior::FullScreenPrimary;
+            ns_window.setCollectionBehavior(cb);
+        }
+    }
 }
 
 /// The user's first name from their Windows account, for the greeting.

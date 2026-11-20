@@ -1,3 +1,4 @@
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { AnimatePresence, motion } from "motion/react";
 import { type ReactNode, useState } from "react";
 import { cn, isMac } from "@/lib/utils";
@@ -43,7 +44,11 @@ export function Onboarding() {
 
   return (
     <div className="flex h-full flex-col bg-surface">
-      <header data-tauri-drag-region className="flex h-12 shrink-0 items-center">
+      <header
+        data-tauri-drag-region
+        onDoubleClick={() => void getCurrentWindow().toggleMaximize()}
+        className="flex h-12 shrink-0 items-center"
+      >
         {isMac && <MacTrafficLights className="pl-4 pr-1" />}
         <div data-tauri-drag-region className="flex flex-1 items-center gap-6 pl-5">
           <Logo />
