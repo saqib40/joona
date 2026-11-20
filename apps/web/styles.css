@@ -1,0 +1,359 @@
+/*
+ * Joona — static web page.
+ *
+ * Visual language mirrors the Joona desktop app (apps/desktop): the design
+ * tokens are copied from src/styles/globals.css and the UI patterns (cards,
+ * buttons, text sizes, radii, shadows) follow the Tailwind utilities in
+ * src/components/ui.
+ */
+
+@import "fonts/fonts.css";
+
+:root {
+  --canvas: oklch(0.982 0.006 85);
+  --surface: oklch(0.995 0.003 85);
+  --surface-raised: oklch(1 0 0);
+  --ink: oklch(0.18 0.01 60);
+  --ink-soft: oklch(0.42 0.012 60);
+  --ink-faint: oklch(0.6 0.01 60);
+  --line: oklch(0.9 0.008 80);
+  --line-strong: oklch(0.82 0.01 80);
+  --fill: oklch(0.955 0.007 85);
+  --fill-strong: oklch(0.925 0.009 85);
+  --accent: oklch(0.78 0.155 70);
+  --accent-ink: oklch(0.5 0.13 55);
+  --accent-soft: oklch(0.95 0.045 80);
+  --primary: oklch(0.18 0.01 60);
+  --primary-ink: oklch(0.985 0.004 85);
+  --danger: oklch(0.58 0.2 27);
+  --danger-soft: oklch(0.95 0.03 27);
+  --success: oklch(0.6 0.13 155);
+  --success-soft: oklch(0.95 0.04 155);
+  --cloud: oklch(0.6 0.13 250);
+  --cloud-soft: oklch(0.95 0.03 250);
+  --ring: oklch(0.78 0.155 70 / 0.55);
+  --shadow-color: 40 20% 20%;
+  --shadow-soft: 0 1px 2px hsl(var(--shadow-color) / 0.06), 0 2px 8px hsl(var(--shadow-color) / 0.05);
+  --shadow-lifted: 0 2px 4px hsl(var(--shadow-color) / 0.06), 0 12px 32px hsl(var(--shadow-color) / 0.12);
+  color-scheme: light;
+
+  --font-sans: "Inter Variable", "Inter", "Segoe UI Variable Text", "Segoe UI", "Nirmala UI", system-ui, sans-serif;
+  --font-display: "Instrument Serif", "Iowan Old Style", Georgia, "Nirmala UI", serif;
+}
+
+.dark {
+  --canvas: oklch(0.165 0.006 60);
+  --surface: oklch(0.2 0.007 60);
+  --surface-raised: oklch(0.235 0.008 60);
+  --ink: oklch(0.96 0.005 85);
+  --ink-soft: oklch(0.76 0.008 80);
+  --ink-faint: oklch(0.56 0.008 70);
+  --line: oklch(0.29 0.008 60);
+  --line-strong: oklch(0.37 0.01 60);
+  --fill: oklch(0.235 0.008 60);
+  --fill-strong: oklch(0.28 0.009 60);
+  --accent: oklch(0.8 0.15 72);
+  --accent-ink: oklch(0.84 0.13 75);
+  --accent-soft: oklch(0.3 0.06 65);
+  --primary: oklch(0.96 0.005 85);
+  --primary-ink: oklch(0.18 0.01 60);
+  --danger: oklch(0.68 0.19 25);
+  --danger-soft: oklch(0.3 0.07 25);
+  --success: oklch(0.72 0.14 155);
+  --success-soft: oklch(0.3 0.05 155);
+  --cloud: oklch(0.72 0.12 250);
+  --cloud-soft: oklch(0.3 0.05 250);
+  --ring: oklch(0.8 0.15 72 / 0.55);
+  --shadow-color: 0 0% 0%;
+  --shadow-soft: 0 1px 2px hsl(var(--shadow-color) / 0.06), 0 2px 8px hsl(var(--shadow-color) / 0.05);
+  --shadow-lifted: 0 2px 4px hsl(var(--shadow-color) / 0.06), 0 12px 32px hsl(var(--shadow-color) / 0.12);
+  color-scheme: dark;
+}
+
+/* --- Base (mirrors @layer base of the app's globals.css) --- */
+
+* {
+  border-color: var(--line);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font: 400 13px var(--font-sans);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv11", "ss01";
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* --- Layout --- */
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 22px 24px;
+}
+
+.brand {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.top-links {
+  display: flex;
+  gap: 16px;
+}
+
+.link-muted {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.link-muted:hover {
+  color: var(--ink);
+}
+
+main {
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* --- Hero --- */
+
+.hero {
+  padding-top: 64px;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.hero-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 56px;
+  line-height: 1;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+
+.tagline {
+  margin: 10px 0 0;
+  max-width: 520px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 34px;
+}
+
+/* --- Buttons (mirrors src/components/ui/button.tsx) --- */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color, color, box-shadow, opacity;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.button.primary {
+  background: var(--primary);
+  color: var(--primary-ink);
+  box-shadow: var(--shadow-soft);
+  height: 32px;
+  border-radius: 12px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.button.primary:hover {
+  background: color-mix(in oklch, var(--primary) 85%, transparent);
+}
+
+.button.secondary {
+  background: var(--surface-raised);
+  color: var(--ink);
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--line-strong) 80%, transparent), 0 1px 1px hsl(var(--shadow-color) / 0.05);
+  height: 32px;
+  border-radius: 12px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.button.secondary:hover {
+  background: var(--fill);
+}
+
+/* --- Features --- */
+
+.features {
+  margin-top: 80px;
+}
+
+.section-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 32px;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.feature-card {
+  display: flex;
+  flex-direction: column;
+  padding: 30px 28px;
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+}
+
+.feature-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.feature-icon-svg {
+  width: 22px;
+  height: 22px;
+}
+
+.feature-card h3 {
+  margin: 20px 0 8px;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.feature-card p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+/* --- Footer --- */
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 16px;
+  max-width: 940px;
+  margin: 96px auto 0;
+  padding: 40px 24px;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+.footer .brand {
+  font-size: 14px;
+}
+
+.footer a {
+  color: var(--ink-soft);
+}
+
+.footer a:hover {
+  color: var(--ink);
+}
+
+/* --- Responsive --- */
+
+@media (max-width: 720px) {
+  .hero-title {
+    font-size: 44px;
+  }
+
+  .feature-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- Reduced motion --- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

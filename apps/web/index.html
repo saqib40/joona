@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Joona — free, open-source voice dictation. Hold a shortcut and talk; your words are typed where your cursor is."
+    />
+    <title>Joona — Voice Dictation</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script>
+      (function () {
+        try {
+          var pref = localStorage.getItem("joona.theme") || "system";
+          var dark = pref === "dark" || (pref === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (_) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <header class="top-bar">
+      <a class="brand" href="./">Joona</a>
+      <div class="top-links">
+        <a class="link-muted" href="https://github.com/saqib40/joona">GitHub</a>
+        <a class="link-muted" href="https://github.com/saqib40/joona/releases/latest">Download</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <p class="eyebrow">Free voice dictation for Windows</p>
+        <h1 class="hero-title">Joona</h1>
+        <p class="tagline">
+          Hold a shortcut and talk — Joona types what you say where your cursor is.
+        </p>
+        <div class="hero-actions">
+          <a class="button primary" href="https://github.com/saqib40/joona/releases/latest">Download</a>
+          <a class="button secondary" href="https://github.com/saqib40/joona">View source on GitHub</a>
+        </div>
+      </section>
+
+      <section class="features">
+        <h2 class="section-title">What you can do with Joona</h2>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <span class="feature-icon">
+              <svg class="feature-icon-svg"><use href="icons.svg#icon-mic" /></svg>
+            </span>
+            <h3>Voice typing, local by default</h3>
+            <p>
+              Transcribe on your PC with Whisper, Parakeet or Moonshine. Your words are typed
+              where your cursor is.
+            </p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon">
+              <svg class="feature-icon-svg"><use href="icons.svg#icon-languages" /></svg>
+            </span>
+            <h3>Speak one language, type another</h3>
+            <p>
+              Say it in Hindi and get English, or Hinglish in Roman script. Joona transcribes it
+              for you.
+            </p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon">
+              <svg class="feature-icon-svg"><use href="icons.svg#icon-keyboard" /></svg>
+            </span>
+            <h3>Command Mode</h3>
+            <p>
+              Hold Ctrl+Win+Alt and say how to change the selected text, or ask for something new
+              to be written.
+            </p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon">
+              <svg class="feature-icon-svg"><use href="icons.svg#icon-sparkles" /></svg>
+            </span>
+            <h3>Free, open, and yours</h3>
+            <p>
+              No account, no word limits, no telemetry. MIT licensed — see the source on GitHub.
+            </p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span class="brand">Joona</span> — free, open-source voice dictation for Windows.
+      <a class="link-muted" href="https://github.com/saqib40/joona">GitHub</a>
+      <a class="link-muted" href="https://github.com/saqib40/joona/releases/latest">Latest release</a>
+    </footer>
+  </body>
+</html>
