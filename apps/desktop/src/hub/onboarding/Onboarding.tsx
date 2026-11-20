@@ -4,7 +4,6 @@ import { type ReactNode, useState } from "react";
 import { cn, isMac } from "@/lib/utils";
 import { saveSettings } from "../settings";
 import { Logo } from "../Sidebar";
-import { MacTrafficLights } from "../components/MacTrafficLights";
 import { TitleBar } from "../TitleBar";
 import { Boosts } from "./Boosts";
 import { Done } from "./Done";
@@ -49,7 +48,7 @@ export function Onboarding() {
         onDoubleClick={() => void getCurrentWindow().toggleMaximize()}
         className="flex h-12 shrink-0 items-center"
       >
-        {isMac && <MacTrafficLights className="pl-4 pr-1" />}
+        {isMac && <div data-tauri-drag-region className="w-18 shrink-0" />}
         <div data-tauri-drag-region className="flex flex-1 items-center gap-6 pl-5">
           <Logo />
           {middle && <Progress index={index - 1} total={STEPS.length - 2} />}

@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { cn, isMac } from "@/lib/utils";
-import { MacTrafficLights } from "./components/MacTrafficLights";
 import { type AiChoice, useAi } from "./ai";
 import { languageName } from "./languages";
 import { type Page, type Settings as SettingsType, useHub } from "./store";
@@ -36,11 +35,7 @@ const NAV: { page: Page; label: string; icon: LucideIcon }[] = [
 export function Sidebar() {
   return (
     <nav aria-label="Joona" className="flex w-[212px] shrink-0 flex-col px-3 pb-3">
-      {isMac && (
-        <div data-tauri-drag-region className="pt-3 pb-1 px-1.5">
-          <MacTrafficLights />
-        </div>
-      )}
+      {isMac && <div data-tauri-drag-region className="h-7 shrink-0" />}
       <div
         data-tauri-drag-region
         onDoubleClick={() => void getCurrentWindow().toggleMaximize()}

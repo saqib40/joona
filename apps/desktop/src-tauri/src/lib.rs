@@ -267,7 +267,16 @@ fn create_window(app: &AppHandle, label: &str) -> anyhow::Result<WebviewWindow> 
         .iter()
         .find(|w| w.label == label)
         .ok_or_else(|| anyhow::anyhow!("tauri.conf.json has no {label} window"))?;
-    Ok(WebviewWindowBuilder::from_config(app, config)?.build()?)
+    #[allow(unused_mut)]
+    let mut builder = WebviewWindowBuilder::from_config(app, config)?;
+    #[cfg(target_os = "macos")]
+    if label == "hub" {
+        builder = builder
+            .decorations(true)
+            .hidden_title(true)
+            .title_bar_style(tauri::TitleBarStyle::Overlay);
+    }
+    Ok(builder.build()?)
 }
 
 #[cfg(windows)]
