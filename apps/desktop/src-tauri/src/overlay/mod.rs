@@ -293,7 +293,7 @@ fn run(shared: Arc<Shared>) {
 mod mac {
     use std::sync::Mutex;
 
-    use objc2::msg_send;
+    use objc2::{class, msg_send};
     use objc2::runtime::AnyObject;
     use objc2_foundation::{NSPoint, NSRect, NSSize};
 
@@ -309,14 +309,7 @@ mod mac {
         );
     }
 
-    #[link(name = "CoreGraphics", kind = "framework")]
-    unsafe extern "C" {
-        fn CGEventCreate(source: *const std::ffi::c_void) -> *mut std::ffi::c_void;
-        fn CGEventGetLocation(event: *const std::ffi::c_void) -> core_graphics::geometry::CGPoint;
-        fn CFRelease(cf: *const std::ffi::c_void);
-    }
-
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, PartialEq)]
     struct PlacedFrame {
         x: f64,
         y: f64,
@@ -392,33 +385,54 @@ mod mac {
             if window.is_null() {
                 return;
             }
-            let screen: *mut AnyObject = msg_send![window, screen];
+            let mouse = objc2_app_kit::NSEvent::mouseLocation();
+            let screens: *mut AnyObject = msg_send![class!(NSScreen), screens];
+            let mut screen: *mut AnyObject = std::ptr::null_mut();
+            if !screens.is_null() {
+                let count: usize = msg_send![screens, count];
+                for i in 0..count {
+                    let s: *mut AnyObject = msg_send![screens, objectAtIndex: i];
+                    if !s.is_null() {
+                        let f: NSRect = msg_send![s, frame];
+                        if mouse.x >= f.origin.x
+                            && mouse.x < f.origin.x + f.size.width
+                            && mouse.y >= f.origin.y
+                            && mouse.y < f.origin.y + f.size.height
+                        {
+                            screen = s;
+                            break;
+                        }
+                    }
+                }
+            }
+            if screen.is_null() {
+                screen = msg_send![window, screen];
+            }
+            if screen.is_null() {
+                screen = msg_send![class!(NSScreen), mainScreen];
+            }
             if screen.is_null() {
                 return;
             }
             let visible_frame: NSRect = msg_send![screen, visibleFrame];
             let x = visible_frame.origin.x + (visible_frame.size.width - BAR_WIDTH) / 2.0;
             let y = visible_frame.origin.y + 16.0;
-            *lock(&PLACED_FRAME) = Some(PlacedFrame { x, y });
+            let current = *lock(&PLACED_FRAME);
+            if current != Some(PlacedFrame { x, y }) {
+                *lock(&PLACED_FRAME) = Some(PlacedFrame { x, y });
 
-            let new_frame = NSRect::new(
-                NSPoint::new(x, y),
-                NSSize::new(BAR_WIDTH, BAR_HEIGHT),
-            );
-            let _: () = msg_send![window, setFrame: new_frame, display: true];
+                let new_frame = NSRect::new(
+                    NSPoint::new(x, y),
+                    NSSize::new(BAR_WIDTH, BAR_HEIGHT),
+                );
+                let _: () = msg_send![window, setFrame: new_frame, display: true];
+            }
         });
     }
 
     pub fn cursor() -> Option<(f64, f64)> {
-        unsafe {
-            let event = CGEventCreate(std::ptr::null());
-            if event.is_null() {
-                return None;
-            }
-            let pt = CGEventGetLocation(event);
-            CFRelease(event);
-            Some((pt.x, pt.y))
-        }
+        let pt = objc2_app_kit::NSEvent::mouseLocation();
+        Some((pt.x, pt.y))
     }
 
     pub fn hit((cursor_x, cursor_y): (f64, f64), regions: &[Region]) -> bool {
