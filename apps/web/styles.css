@@ -197,6 +197,12 @@ main {
   margin-top: 34px;
 }
 
+.platform-line {
+  margin: 16px 0 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
 /* --- Buttons (mirrors src/components/ui/button.tsx) --- */
 
 .button {
@@ -267,10 +273,6 @@ main {
   margin-top: 28px;
 }
 
-.feature-card:last-child {
-  grid-column: 1 / -1;
-}
-
 .feature-card {
   display: flex;
   flex-direction: column;
@@ -289,6 +291,13 @@ main {
   border-radius: 999px;
   background: var(--accent-soft);
   color: var(--accent-ink);
+}
+
+/* The dark-mode accent-soft is a muddy dark-amber disk; a bright gold
+   accent with dark ink glyphs is crisp instead. */
+.dark .feature-icon {
+  background: var(--accent);
+  color: var(--primary-ink);
 }
 
 .feature-icon-svg {
