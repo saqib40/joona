@@ -24,7 +24,7 @@
       <a class="brand" href="./">Joona</a>
       <div class="top-links">
         <a class="link-muted" href="https://github.com/saqib40/joona">GitHub</a>
-        <a class="link-muted" href="https://github.com/saqib40/joona/releases/latest">Download</a>
+        <a class="link-muted" data-download-link href="https://github.com/saqib40/joona/releases/latest">Download</a>
       </div>
     </header>
 
@@ -36,10 +36,12 @@
           Hold a shortcut and talk — Joona types what you say where your cursor is.
         </p>
         <div class="hero-actions">
-          <a class="button primary" href="https://github.com/saqib40/joona/releases/latest">Download</a>
+          <a class="button primary" data-download-link href="https://github.com/saqib40/joona/releases/latest">
+            <span data-download-label>Download</span>
+          </a>
           <a class="button secondary" href="https://github.com/saqib40/joona">View source on GitHub</a>
         </div>
-        <p class="platform-line">Windows and macOS.</p>
+        <p class="platform-line" data-download-meta>Windows and macOS.</p>
       </section>
 
       <section class="features">
@@ -93,5 +95,7 @@
       <a class="link-muted" href="https://github.com/saqib40/joona">GitHub</a>
       <a class="link-muted" href="https://github.com/saqib40/joona/releases/latest">Latest release</a>
     </footer>
+
+    <script src="download.js"></script>
   </body>
 </html>

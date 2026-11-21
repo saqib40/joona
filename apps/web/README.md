@@ -9,6 +9,10 @@ buttons, text sizes, radii, shadows) from `apps/desktop/src/components/ui`.
 
 - `index.html` — the page (hero, feature cards, footer; dark mode follows the system).
 - `styles.css` — design tokens plus page styles.
+- `download.js` — detects Windows or macOS and points the download buttons at the
+  matching installer in the latest published GitHub release. It caches the
+  release for an hour and falls back to the release page if the API is
+  unavailable or the release has no asset for that platform.
 - `icons.svg` — sprite of the lucide icons used by the page.
 - `fonts/` — the app's fonts (Inter Variable, Instrument Serif), self-hosted.
 
