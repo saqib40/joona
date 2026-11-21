@@ -3,6 +3,14 @@
 Each release's notes come from its section here. Joona shows the first line
 when it offers the update, so keep that line to one plain sentence.
 
+## 0.2.3
+
+Updates Sarvam AI models to sarvam-105b and refines macOS floating bar positioning.
+
+- Switched Sarvam chat and translation models to `sarvam-105b` and `sarvam-105b-conversations` with reasoning effort control for faster, more accurate dictation and Command Mode responses.
+- Refined macOS floating bar overlay positioning to sit snugly right above the Dock with zero jitter or overlap.
+- Added comprehensive Commands & Shortcuts reference guide to the website with platform auto-detection.
+
 ## 0.2.2
 
 Adds macOS support and cross-platform releases for Windows and macOS.
