@@ -64,6 +64,7 @@ export const useModels = create<ModelsStore>((set) => ({
   use: async (id, english) => {
     try {
       await commands.modelUse(id, english);
+      await useModels.getState().refresh();
     } catch (e) {
       toast.error("Couldn't switch models", { description: String(e) });
     }

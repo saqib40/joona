@@ -381,6 +381,8 @@ fn watch_settings(app: AppHandle, state: Arc<AppState>) {
             if gpu_changed {
                 state.engine.set_variant(engine_variant(&now)).await;
                 let _ = ModelsChanged.emit_to(&app, "hub");
+            } else if choice_changed {
+                let _ = ModelsChanged.emit_to(&app, "hub");
             }
             if gpu_changed
                 || choice_changed
