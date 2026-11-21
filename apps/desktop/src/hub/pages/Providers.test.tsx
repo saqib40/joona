@@ -65,7 +65,9 @@ describe("Providers", () => {
     expect(screen.getByText(/Turning Hindi into text/)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Test" }));
-    await vi.waitFor(() => expect(toast.success).toHaveBeenCalledWith("Sarvam accepted your key"));
+    await vi.waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith("Sarvam accepted your key for speech and translation"),
+    );
 
     await userEvent.click(screen.getByRole("button", { name: "Turn off…" }));
     await userEvent.click(await screen.findByRole("button", { name: "Turn off" }));
