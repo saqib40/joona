@@ -19,6 +19,11 @@
   var os = detectOS();
   var arch = "";
 
+  // The commands page highlights the key column for the visitor's platform.
+  if (os === "windows" || os === "macos") {
+    document.documentElement.dataset.platform = os;
+  }
+
   function detectOS() {
     var platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
     var ua = navigator.userAgent || "";

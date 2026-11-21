@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Every Joona keyboard shortcut and menu command, for Windows and macOS."
+    />
+    <title>Commands — Joona</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script>
+      (function () {
+        try {
+          var pref = localStorage.getItem("joona.theme") || "system";
+          var dark = pref === "dark" || (pref === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (_) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <header class="top-bar">
+      <a class="brand" href="./">Joona</a>
+      <div class="top-links">
+        <a class="link-muted" href="commands.html" aria-current="page">Commands</a>
+        <a class="link-muted" href="https://github.com/saqib40/joona">GitHub</a>
+        <a class="link-muted" data-download-link href="https://github.com/saqib40/joona/releases/latest">Download</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <p class="eyebrow">Reference</p>
+        <h1 class="hero-title">Commands</h1>
+        <p class="tagline">
+          Every keyboard shortcut and menu command, for Windows and macOS. The keys for your
+          platform are highlighted.
+        </p>
+      </section>
+
+      <section class="commands-section">
+        <div class="section-heading">
+          <h2 class="section-title">Dictation</h2>
+          <p class="section-note">Works in any app while Joona is running.</p>
+        </div>
+        <div class="commands-card">
+          <div class="commands-scroll">
+            <table class="commands-table">
+              <thead>
+                <tr>
+                  <th scope="col">Action</th>
+                  <th scope="col" class="platform-cell col-windows">
+                    <span class="platform-label">Windows</span>
+                    <span class="platform-you">Your platform</span>
+                  </th>
+                  <th scope="col" class="platform-cell col-macos">
+                    <span class="platform-label">macOS</span>
+                    <span class="platform-you">Your platform</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">
+                    <span class="command-name">Dictate</span>
+                    <span class="command-desc">
+                      Hold while you speak, then let go to type where your cursor is.
+                    </span>
+                  </th>
+                  <td class="platform-cell col-windows">
+                    <span class="keys"><kbd>Ctrl</kbd><kbd>Win</kbd></span>
+                  </td>
+                  <td class="platform-cell col-macos">
+                    <span class="keys"><kbd>Ctrl</kbd><kbd>Cmd</kbd></span>
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">
+                    <span class="command-name">Hands-free</span>
+                    <span class="command-desc">
+                      Double-tap the dictation shortcut to keep talking without holding it. Tap
+                      once more to finish.
+                    </span>
+                  </th>
+                  <td class="platform-cell col-windows">
+                    <span class="keys"><kbd>Ctrl</kbd><kbd>Win</kbd></span>
+                  </td>
+                  <td class="platform-cell col-macos">
+                    <span class="keys"><kbd>Ctrl</kbd><kbd>Cmd</kbd></span>
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">
+                    <span class="command-name">Hands-free with Space</span>
+                    <span class="command-desc">
+                      Start hands-free without double-tapping. You can turn this off in Settings.
+                    </span>
+                  </th>
+                  <td class="platform-cell col-windows">
+                    <span class="keys"><kbd>Ctrl</kbd><kbd>Win</kbd><kbd>Space</kbd></span>
+                  </td>
+                  <td class="platform-cell col-macos">
+                    <span class="keys"><kbd>Ctrl</kbd><kbd>Cmd</kbd><kbd>Space</kbd></span>
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">
+                    <span class="command-name">Cancel</span>
+                    <span class="command-desc">Stop without typing anything.</span>
+                  </th>
+                  <td class="platform-cell col-windows">
+                    <span class="keys"><kbd>Esc</kbd></span>
+                  </td>
+                  <td class="platform-cell col-macos">
+                    <span class="keys"><kbd>Esc</kbd></span>
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">
+                    <span class="command-name">Alternate language</span>
+                    <span class="command-desc">
+                      Dictate in your second output language, if you've set one in Languages.
+                    </span>
+                  </th>
+                  <td class="platform-cell col-windows">
+                    <span class="keys"><kbd>Ctrl</kbd><kbd>Win</kbd><kbd>Shift</kbd></span>
+                  </td>
+                  <td class="platform-cell col-macos">
+                    <span class="keys"><kbd>Ctrl</kbd><kbd>Cmd</kbd><kbd>Shift</kbd></span>
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">
+                    <span class="command-name">
+                      Command Mode <span class="tag">Experimental</span>
+                    </span>
+                    <span class="command-desc">
+                      Select text, then hold the shortcut and say how to change it. With nothing
+                      selected, Joona writes what you ask for. Turn it on in Settings ›
+                      Experimental.
+                    </span>
+                  </th>
+                  <td class="platform-cell col-windows">
+                    <span class="keys"><kbd>Ctrl</kbd><kbd>Win</kbd><kbd>Alt</kbd></span>
+                  </td>
+                  <td class="platform-cell col-macos">
+                    <span class="keys"><kbd>Ctrl</kbd><kbd>Cmd</kbd><kbd>Option</kbd></span>
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">
+                    <span class="command-name">Paste last dictation</span>
+                    <span class="command-desc">
+                      Type your last dictation again, for when it landed in the wrong place.
+                    </span>
+                  </th>
+                  <td class="platform-cell col-windows">
+                    <span class="keys"><kbd>Alt</kbd><kbd>Shift</kbd><kbd>Z</kbd></span>
+                  </td>
+                  <td class="platform-cell col-macos">
+                    <span class="keys"><kbd>Option</kbd><kbd>Shift</kbd><kbd>Z</kbd></span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="commands-section">
+        <div class="section-heading">
+          <h2 class="section-title">Joona Bar</h2>
+          <p class="section-note">The small bar at the bottom of the screen.</p>
+        </div>
+        <div class="commands-card">
+          <ul class="command-list">
+            <li>
+              <span class="command-name">Click the bar</span>
+              <p class="command-desc">
+                Start hands-free. If Joona is paused, this resumes it instead.
+              </p>
+            </li>
+            <li>
+              <span class="command-name">Right-click the bar</span>
+              <p class="command-desc">
+                Open the bar menu to hide it for an hour, pause or resume Joona, open Joona, or
+                change the language.
+              </p>
+            </li>
+            <li>
+              <span class="command-name">Language chip</span>
+              <p class="command-desc">
+                Pick the language you speak, or open Language settings. It appears when you have
+                more than one language or a translation.
+              </p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="commands-section">
+        <div class="section-heading">
+          <h2 class="section-title">Menu bar and tray</h2>
+          <p class="section-note">The menu bar on macOS, the system tray on Windows.</p>
+        </div>
+        <div class="commands-card">
+          <ul class="command-list">
+            <li>
+              <span class="command-name">Open Joona</span>
+              <p class="command-desc">Open the Hub to see your history and settings.</p>
+            </li>
+            <li>
+              <span class="command-name">Start hands-free</span>
+              <p class="command-desc">Begin dictating without holding the shortcut.</p>
+            </li>
+            <li>
+              <span class="command-name">Paste last transcript</span>
+              <p class="command-desc">Type your last dictation again.</p>
+            </li>
+            <li>
+              <span class="command-name">Language</span>
+              <p class="command-desc">
+                Choose the language you speak, or open Language settings.
+              </p>
+            </li>
+            <li>
+              <span class="command-name">Pause Joona</span>
+              <p class="command-desc">
+                Stop the shortcut from doing anything until you resume.
+              </p>
+            </li>
+            <li>
+              <span class="command-name">Check for updates</span>
+              <p class="command-desc">
+                Check GitHub now. The label changes when an update is ready.
+              </p>
+            </li>
+            <li>
+              <span class="command-name">Quit Joona</span>
+              <p class="command-desc">Close Joona and its speech engine.</p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="commands-section">
+        <div class="section-heading">
+          <h2 class="section-title">Spoken commands</h2>
+          <p class="section-note">Say these while you dictate. They work on both platforms.</p>
+        </div>
+        <div class="commands-card">
+          <ul class="command-list">
+            <li>
+              <span class="command-name">“New line” or “Next line”</span>
+              <p class="command-desc">Start a new line.</p>
+            </li>
+            <li>
+              <span class="command-name">“New paragraph”</span>
+              <p class="command-desc">Start a new paragraph.</p>
+            </li>
+            <li>
+              <span class="command-name">
+                “Press enter” <span class="tag">Experimental</span>
+              </span>
+              <p class="command-desc">
+                Say it at the end of a dictation to press Enter and send the message. Turn it on
+                in Settings › Experimental.
+              </p>
+            </li>
+            <li>
+              <span class="command-name">Your snippets</span>
+              <p class="command-desc">
+                Say a phrase you saved in Settings › Snippets to type its text.
+              </p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="commands-section">
+        <h2 class="section-title">Good to know</h2>
+        <div class="note-grid">
+          <article class="note-card">
+            <h3>Change any shortcut</h3>
+            <p>
+              Open Settings › General to change the dictation and paste-last shortcuts, or turn
+              double-tap and Space for hands-free on or off.
+            </p>
+          </article>
+          <article class="note-card">
+            <h3>Other keys cancel</h3>
+            <p>
+              Press another key within a second of starting and Joona cancels, passing the key to
+              the app. Your usual shortcuts keep working.
+            </p>
+          </article>
+          <article class="note-card">
+            <h3>macOS permission</h3>
+            <p>
+              Allow Joona in System Settings › Privacy &amp; Security › Accessibility so it can
+              see the shortcut in other apps.
+            </p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span class="brand">Joona</span> — free, open-source voice dictation for Windows and macOS.
+      <a class="link-muted" href="commands.html">Commands</a>
+      <a class="link-muted" href="https://github.com/saqib40/joona">GitHub</a>
+      <a class="link-muted" href="https://github.com/saqib40/joona/releases/latest">Latest release</a>
+    </footer>
+
+    <script src="download.js"></script>
+  </body>
+</html>
