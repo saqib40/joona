@@ -523,18 +523,23 @@ kbd {
   border-radius: 999px;
   background: var(--accent-soft);
   color: var(--accent-ink);
+  border: 1px solid color-mix(in oklch, var(--accent-ink) 14%, transparent);
 }
 
-/* The dark-mode accent-soft is a muddy dark-amber disk; a bright gold
-   accent with dark ink glyphs is crisp instead. */
 .dark .feature-icon {
-  background: var(--accent);
-  color: var(--primary-ink);
+  background: color-mix(in oklch, var(--accent) 14%, transparent);
+  color: var(--accent);
+  border: 1px solid color-mix(in oklch, var(--accent) 26%, transparent);
 }
 
 .feature-icon-svg {
   width: 22px;
   height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .feature-card h3 {
