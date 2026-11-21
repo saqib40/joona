@@ -23,8 +23,17 @@ impl MicAccess {
     }
 }
 
+#[cfg(windows)]
 /// The page of Windows Settings with the switches above.
 pub const PRIVACY_SETTINGS_URL: &str = "ms-settings:privacy-microphone";
+
+#[cfg(target_os = "macos")]
+/// The page of macOS System Settings with Microphone privacy permissions.
+pub const PRIVACY_SETTINGS_URL: &str =
+    "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone";
+
+#[cfg(not(any(windows, target_os = "macos")))]
+pub const PRIVACY_SETTINGS_URL: &str = "";
 
 /// Each switch is stored as `Allow` or `Deny`. A missing value is the
 /// Windows default, which allows.
@@ -60,7 +69,29 @@ pub fn mic_access() -> MicAccess {
     )
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+#[link(name = "AVFoundation", kind = "framework")]
+unsafe extern "C" {}
+
+#[cfg(target_os = "macos")]
+pub fn mic_access() -> MicAccess {
+    use objc2::class;
+    use objc2::msg_send;
+    use objc2_foundation::NSString;
+
+    let media_type = NSString::from_str("soun");
+    let cls = class!(AVCaptureDevice);
+    let status: isize = unsafe { msg_send![cls, authorizationStatusForMediaType: &*media_type] };
+    match status {
+        0 => MicAccess::Allowed, // AVAuthorizationStatusNotDetermined (system will prompt on recording)
+        1 => MicAccess::BlockedForDevice, // AVAuthorizationStatusRestricted
+        2 => MicAccess::BlockedForUser, // AVAuthorizationStatusDenied
+        3 => MicAccess::Allowed, // AVAuthorizationStatusAuthorized
+        _ => MicAccess::Allowed,
+    }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn mic_access() -> MicAccess {
     MicAccess::Allowed
 }
@@ -125,5 +156,18 @@ mod tests {
     fn reads_the_registry() {
         // Whatever this PC's switches are, reading them must not fail or panic.
         let _ = mic_access();
+    }
+
+    #[test]
+    #[cfg(target_os = "macos")]
+    fn queries_macos_mic_authorization() {
+        let status = mic_access();
+        assert!(matches!(
+            status,
+            MicAccess::Allowed
+                | MicAccess::BlockedForUser
+                | MicAccess::BlockedForDevice
+                | MicAccess::BlockedForDesktopApps
+        ));
     }
 }
