@@ -62,16 +62,22 @@ export function Models() {
 }
 
 function Overview({ overview }: { overview: ModelsOverview }) {
+  const settings = useHub((s) => s.settings);
   const installed = overview.models.filter((m) => m.installed);
   const available = overview.models
     .filter((m) => !m.installed)
     .sort((a, b) => Number(b.id === overview.recommended) - Number(a.id === overview.recommended));
+  const autoMode = !settings?.models.active;
+
   return (
     <div className="space-y-8">
       <ThisPc overview={overview} />
       {installed.length > 0 && (
         <section className="space-y-2.5">
-          <SectionTitle title="On this PC" />
+          <SectionTitle
+            title="On this PC"
+            hint={autoMode ? "Joona chooses automatically based on your hardware" : "Manual choice active"}
+          />
           {installed.map((m) => (
             <ModelRow key={m.id} model={m} overview={overview} />
           ))}
@@ -243,10 +249,14 @@ function ModelRow({ model, overview }: { model: ModelCard; overview: ModelsOverv
             {inUse && (
               <Badge tone="ink">
                 <Check strokeWidth={3} />
-                In use
+                In use{chosen ? "" : " · Auto"}
               </Badge>
             )}
-            {english && <Badge>For English</Badge>}
+            {english && (
+              <Badge title="Used when dictating in English while another model transcribes other languages">
+                For English
+              </Badge>
+            )}
             {model.custom && <Badge>Added by hand</Badge>}
           </div>
           <p className="mt-1 text-[13px] leading-snug text-ink-soft">{model.summary}</p>
@@ -274,6 +284,11 @@ function ModelRow({ model, overview }: { model: ModelCard; overview: ModelsOverv
               {!inUse && (
                 <Button variant="primary" size="sm" onClick={() => void useModels.getState().use(model.id, false)}>
                   Use
+                </Button>
+              )}
+              {chosen && (
+                <Button variant="secondary" size="sm" onClick={() => void useModels.getState().use(null, false)}>
+                  Let Joona choose
                 </Button>
               )}
               <ModelMenu model={model} chosen={chosen} english={english} canEnglish={canEnglish} />
