@@ -237,7 +237,7 @@ fn run(shared: Arc<Shared>) {
     }
 
     mac::setup_window(window_handle);
-    mac::place_at_bottom_center(window_handle);
+    mac::place_at_bottom_center(window_handle, false);
 
     let mut hovering = false;
     let mut shown = true;
@@ -254,7 +254,7 @@ fn run(shared: Arc<Shared>) {
         let regions = lock(&shared.regions).clone();
 
         if kick || tick.is_multiple_of(SLOW_EVERY) {
-            mac::place_at_bottom_center(window_handle);
+            mac::place_at_bottom_center(window_handle, dictating && !kick);
             shared.report_resting(shared.resting_wanted(false));
             let visible =
                 dictating || !regions.is_empty() || shared.resting.load(Ordering::Relaxed);
@@ -413,7 +413,10 @@ mod mac {
         });
     }
 
-    pub fn place_at_bottom_center(window_ptr: usize) {
+    pub fn place_at_bottom_center(window_ptr: usize, locked: bool) {
+        if locked {
+            return;
+        }
         run_on_main(move || unsafe {
             let window = window_ptr as *mut AnyObject;
             if window.is_null() {
@@ -448,9 +451,21 @@ mod mac {
             if screen.is_null() {
                 return;
             }
+            let frame: NSRect = msg_send![screen, frame];
             let visible_frame: NSRect = msg_send![screen, visibleFrame];
             let x = visible_frame.origin.x + (visible_frame.size.width - BAR_WIDTH) / 2.0;
-            let y = visible_frame.origin.y + 16.0;
+
+            // When the Dock is present at the bottom of the screen (visible_frame.origin.y > frame.origin.y),
+            // sit snug right above the Dock line (+ 2.0 pt) so it never overlaps Dock icons and doesn't
+            // float high with an awkward gap.
+            // When the Dock is hidden (Full Screen app or Dock auto-hide enabled), rest near the bottom edge.
+            let dock_bottom_height = (visible_frame.origin.y - frame.origin.y).max(0.0);
+            let y = if dock_bottom_height > 0.0 {
+                visible_frame.origin.y + 2.0
+            } else {
+                frame.origin.y + 12.0
+            };
+
             let current = *lock(&PLACED_FRAME);
             if current != Some(PlacedFrame { x, y }) {
                 *lock(&PLACED_FRAME) = Some(PlacedFrame { x, y });
