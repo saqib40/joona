@@ -366,6 +366,7 @@ fn run_tap_thread(
     ) {
         Ok(t) => t,
         Err(_) => {
+            *SHARED.lock().unwrap_or_else(|e| e.into_inner()) = None;
             let _ = ready.send(Err(anyhow::anyhow!(
                 "Failed to install CGEventTap. Ensure Accessibility permission is granted in macOS System Settings."
             )));
@@ -377,6 +378,7 @@ fn run_tap_thread(
     let source = match mach_port.create_runloop_source(0) {
         Ok(s) => s,
         Err(_) => {
+            *SHARED.lock().unwrap_or_else(|e| e.into_inner()) = None;
             let _ = ready.send(Err(anyhow::anyhow!("Failed to create run loop source")));
             return;
         }

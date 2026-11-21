@@ -309,17 +309,60 @@ fn native_handle(_window: &WebviewWindow) -> anyhow::Result<isize> {
 
 fn start_hotkeys(state: &Arc<AppState>, settings: &Settings) {
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
-    match Hotkeys::start(settings.gesture_config(), tx) {
+    match Hotkeys::start(settings.gesture_config(), tx.clone()) {
         Ok(hotkeys) => {
             hotkeys.set_paused(settings.general.paused);
             *state.hotkeys.lock().unwrap_or_else(|e| e.into_inner()) = Some(hotkeys);
         }
-        Err(e) => tracing::error!("couldn't install the keyboard shortcut: {e:#}"),
+        Err(e) => {
+            tracing::warn!("couldn't install the keyboard shortcut on startup: {e:#}");
+            #[cfg(target_os = "macos")]
+            spawn_accessibility_retry(state.clone(), tx);
+        }
     }
     let session = state.session.clone();
     tauri::async_runtime::spawn(async move {
         while let Some(action) = rx.recv().await {
             session.send(Command::Gesture(action));
+        }
+    });
+}
+
+#[cfg(target_os = "macos")]
+fn spawn_accessibility_retry(
+    state: Arc<AppState>,
+    tx: tokio::sync::mpsc::UnboundedSender<crate::hotkeys::Action>,
+) {
+    tauri::async_runtime::spawn(async move {
+        tracing::info!("waiting for macOS Accessibility permission in System Settings...");
+        let mut interval = tokio::time::interval(Duration::from_millis(1500));
+        loop {
+            interval.tick().await;
+
+            if state
+                .hotkeys
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .is_some()
+            {
+                break;
+            }
+
+            if crate::hotkeys::macos::is_accessibility_trusted(false) {
+                tracing::info!("macOS Accessibility permission granted, installing hotkey tap...");
+                let current_settings = state.settings.get();
+                match Hotkeys::start(current_settings.gesture_config(), tx.clone()) {
+                    Ok(hotkeys) => {
+                        hotkeys.set_paused(current_settings.general.paused);
+                        *state.hotkeys.lock().unwrap_or_else(|e| e.into_inner()) = Some(hotkeys);
+                        tracing::info!("macOS Accessibility hotkey tap successfully installed");
+                        break;
+                    }
+                    Err(e) => {
+                        tracing::warn!("Accessibility was trusted but hotkeys start failed: {e:#}");
+                    }
+                }
+            }
         }
     });
 }
