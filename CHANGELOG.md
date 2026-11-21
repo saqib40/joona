@@ -3,6 +3,15 @@
 Each release's notes come from its section here. Joona shows the first line
 when it offers the update, so keep that line to one plain sentence.
 
+## 0.2.4
+
+Improves macOS permission handling, instant model switching, and website features.
+
+- Fixed macOS Accessibility permission handling: shortcuts now dynamically activate as soon as permission is granted in System Settings without needing an app restart.
+- Fixed macOS Microphone privacy detection: Joona now checks native AVFoundation authorization status and deep-links directly to macOS Microphone Privacy settings when access is denied.
+- Added instant UI update and 1-click revert to automatic selection in the Models hub.
+- Redesigned feature cards on the website with crisp Lucide icons and glowing dark-mode styling.
+
 ## 0.2.3
 
 Updates Sarvam AI models to sarvam-105b and refines macOS floating bar positioning.
