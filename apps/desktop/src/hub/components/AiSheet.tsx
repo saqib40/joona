@@ -258,6 +258,7 @@ function Consent({ provider }: { provider: AiProvider }) {
       <p className="font-medium text-ink">What {provider.name} receives</p>
       <ul className="mt-1.5 list-disc space-y-1 pl-4">
         <li>The text of each dictation while Smart polish is on, with your dictionary words.</li>
+        <li>The text you select for Command Mode, and the instruction you say about it.</li>
         <li>Text that Joona asks it to translate or write in English letters.</li>
       </ul>
       <p className="mt-2">

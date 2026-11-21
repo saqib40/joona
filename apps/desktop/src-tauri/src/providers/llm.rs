@@ -28,6 +28,9 @@ const ANTHROPIC_VERSION: &str = "2023-06-01";
 const TEMPERATURE: f32 = 0.2;
 /// Reasoning models spend tokens thinking before they write the answer.
 const THINKING_TOKENS: u32 = 4096;
+/// Sarvam's Starter plan allows 4096 output tokens. Asking for more is a 400,
+/// so keep every request inside the smallest tier's limit.
+const SARVAM_MAX_TOKENS: u32 = 4096;
 /// More than anyone scrolls through in a model picker.
 const MAX_MODELS: usize = 400;
 /// Words in model names that aren't for chat: embeddings, speech, images.
@@ -172,13 +175,13 @@ pub static SPECS: &[Spec] = &[
     Spec {
         id: SARVAM,
         name: sarvam::NAME,
-        summary: "Sarvam-M, made for Indian languages. Uses your Sarvam key.",
+        summary: "Sarvam-105B, made for Indian languages. Uses your Sarvam key.",
         api: Api::OpenAi,
         key: KeyNeed::Required,
         local: false,
         base: "https://api.sarvam.ai/v1",
         endpoint: false,
-        models: &["sarvam-m"],
+        models: &["sarvam-105b", "sarvam-105b-conversations"],
         keys_url: Some(sarvam::KEYS_URL),
         privacy_url: Some(sarvam::PRIVACY_URL),
         note: None,
@@ -409,6 +412,10 @@ impl Llm {
         max_tokens: u32,
         timeout: Duration,
     ) -> Result<String, ProviderError> {
+        let max_tokens = match self.spec.id {
+            SARVAM => max_tokens.min(SARVAM_MAX_TOKENS),
+            _ => max_tokens,
+        };
         let mut messages = vec![json!({ "role": "system", "content": prompt.system })];
         messages.extend(prompt.turns());
         let mut body = json!({
@@ -418,6 +425,12 @@ impl Llm {
             "max_tokens": max_tokens,
             "stream": false,
         });
+        // Sarvam-105B reasons by default. For a short rewrite that spends the
+        // answer's token budget on thinking and can leave `content` empty, so
+        // ask for the answer only. The conversations variant ignores it.
+        if self.spec.id == SARVAM {
+            body["reasoning_effort"] = Value::Null;
+        }
         let reply: ChatReply = match self.send(self.completion(&body, timeout)).await {
             // Reasoning models refuse a temperature and want `max_completion_tokens`.
             Err(ProviderError::Rejected(_, message)) if about_sampling(&message) => {
@@ -733,6 +746,25 @@ mod tests {
         assert_eq!(body["messages"][3]["content"], "Hi");
         assert_eq!(body["max_tokens"], 300);
         assert_eq!(body["stream"], false);
+    }
+
+    #[tokio::test]
+    async fn sarvam_chat_turns_reasoning_off_and_caps_the_answer() {
+        let (base, server) = serve_once(200, ANSWER);
+        let answer = client(SARVAM, base)
+            .chat(&brief(), 8192, CHECK_TIMEOUT)
+            .await
+            .unwrap();
+        assert_eq!(answer, "Hello there.");
+        let request = server.join().unwrap();
+        assert!(request.starts_with("POST /chat/completions "), "{request}");
+        let head = request.to_ascii_lowercase();
+        assert!(head.contains("api-subscription-key: test-key"));
+        assert!(head.contains("authorization: bearer test-key"));
+        let body = json_body(&request);
+        assert_eq!(body["model"], "test-model");
+        assert_eq!(body["max_tokens"], SARVAM_MAX_TOKENS);
+        assert_eq!(body["reasoning_effort"], Value::Null);
     }
 
     #[tokio::test]

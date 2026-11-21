@@ -312,9 +312,9 @@ const AI_PROVIDERS: AiProvider[] = [
   provider({
     id: "sarvam",
     name: "Sarvam",
-    summary: "Sarvam-M, made for Indian languages. Uses your Sarvam key.",
+    summary: "Sarvam-105B, made for Indian languages. Uses your Sarvam key.",
     defaultEndpoint: "https://api.sarvam.ai/v1",
-    models: ["sarvam-m"],
+    models: ["sarvam-105b", "sarvam-105b-conversations"],
     keysUrl: "https://dashboard.sarvam.ai/key-management",
     privacyUrl: "https://www.sarvam.ai/privacy-policy",
   }),

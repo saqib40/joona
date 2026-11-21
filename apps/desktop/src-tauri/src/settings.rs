@@ -368,6 +368,14 @@ impl Settings {
         let polish = &mut self.polish;
         polish.provider.take_if(|p| llm::spec(p).is_none());
         polish.model = trimmed(polish.model.take());
+        // Sarvam-M and Sarvam-30B were removed from the API. Drop a saved
+        // model ID from an older version so the provider's current default is
+        // used instead of failing every request.
+        if polish.provider.as_deref() == Some(crate::providers::SARVAM)
+            && matches!(polish.model.as_deref(), Some("sarvam-m" | "sarvam-30b"))
+        {
+            polish.model = None;
+        }
         polish.endpoint = polish
             .endpoint
             .take()
@@ -564,6 +572,23 @@ mod tests {
         assert_eq!(polish.level, PolishLevel::Smart);
         assert_eq!(polish.provider.as_deref(), Some("openai"));
         assert!(polish.translate);
+    }
+
+    #[test]
+    fn removed_sarvam_models_fall_back_to_the_current_default() {
+        let mut s = Settings::default();
+        s.polish.provider = Some(crate::providers::SARVAM.into());
+        s.polish.model = Some("sarvam-m".into());
+        s.sanitize();
+        assert_eq!(s.polish.model, None);
+
+        s.polish.model = Some("sarvam-30b".into());
+        s.sanitize();
+        assert_eq!(s.polish.model, None);
+
+        s.polish.model = Some("sarvam-105b".into());
+        s.sanitize();
+        assert_eq!(s.polish.model.as_deref(), Some("sarvam-105b"));
     }
 
     #[test]

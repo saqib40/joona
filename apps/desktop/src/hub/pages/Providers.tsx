@@ -45,7 +45,7 @@ function Sarvam({ settings }: { settings: Settings }) {
     const failure = await useProviders.getState().test(SARVAM);
     setTesting(false);
     if (failure) toast.error("Sarvam didn't work", { description: failure.message });
-    else toast.success("Sarvam accepted your key");
+    else toast.success("Sarvam accepted your key for speech and translation");
   };
 
   const usedFor =
@@ -59,7 +59,7 @@ function Sarvam({ settings }: { settings: Settings }) {
     <>
       <Group
         title="Sarvam AI"
-        description="Speech to text, translation and English letters for 22 Indian languages. Based in India."
+        description="Speech to text, translation and English letters for 22 Indian languages. Based in India. For Command Mode and Smart polish, pick Sarvam under AI models below."
         action={
           ready ? (
             <Badge tone="cloud">On</Badge>
