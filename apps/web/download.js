@@ -14,7 +14,7 @@
   var RELEASES_PAGE = "https://github.com/" + REPO + "/releases/latest";
   var LATEST_API = "https://api.github.com/repos/" + REPO + "/releases/latest";
   var CACHE_KEY = "joona.latest-release";
-  var CACHE_TTL = 60 * 60 * 1000;
+  var CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
 
   var os = detectOS();
   var arch = "";
@@ -128,10 +128,7 @@
     }
   }
 
-  function loadRelease() {
-    var cached = readCache();
-    if (cached) return Promise.resolve(cached);
-
+  function fetchFreshRelease() {
     return fetch(LATEST_API, { headers: { Accept: "application/vnd.github+json" } })
       .then(function (response) {
         if (!response.ok) throw new Error("GitHub returned " + response.status);
@@ -145,6 +142,23 @@
       .catch(function () {
         return null;
       });
+  }
+
+  function loadRelease(onUpdate) {
+    var cached = readCache();
+    if (cached) {
+      // Revalidate in background if cache is older than 1 minute
+      if (Date.now() - cached.savedAt > 60 * 1000) {
+        fetchFreshRelease().then(function (fresh) {
+          if (fresh && fresh.version !== cached.version && typeof onUpdate === "function") {
+            onUpdate(fresh);
+          }
+        });
+      }
+      return Promise.resolve(cached);
+    }
+
+    return fetchFreshRelease();
   }
 
   function setLinks(href) {
@@ -191,7 +205,7 @@
   detectArch()
     .then(function (detected) {
       arch = detected;
-      return loadRelease();
+      return loadRelease(apply);
     })
     .then(apply)
     .catch(function () {
