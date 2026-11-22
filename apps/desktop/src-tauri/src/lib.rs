@@ -137,6 +137,7 @@ pub fn run() {
         .expect("error while building Joona");
 
     app.run(|app, event| match event {
+        #[cfg(target_os = "macos")]
         RunEvent::Reopen { .. } => {
             show_hub(app, None);
         }
