@@ -1,5 +1,10 @@
 # Joona
 
+<p align="center">
+  <img src="docs/screenshots/languages.png" width="49%" alt="Joona Languages" />
+  <img src="docs/screenshots/style.png" width="49%" alt="Joona Style" />
+</p>
+
 Free, open-source voice dictation for Windows and macOS. Hold **Ctrl+Win** (Windows) or **Ctrl+Cmd** (macOS) in any app, speak, and Joona types what you said where your cursor is.
 
 - **Free and MIT licensed.** No account, no subscriptions, no word limits, no telemetry.
