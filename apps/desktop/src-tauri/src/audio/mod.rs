@@ -8,7 +8,7 @@ pub mod resample;
 mod test;
 
 pub use capture::{AudioSink, Capture, CaptureInfo, InputDevice, list_input_devices};
-pub use privacy::{MicAccess, PRIVACY_SETTINGS_URL, mic_access};
+pub use privacy::{MicAccess, PRIVACY_SETTINGS_URL, ensure_mic_access, mic_access};
 pub use recording::{Limit, MAX_RECORDING_MS, Recording, WARN_RECORDING_MS};
 pub use resample::TARGET_RATE;
 pub use test::MicTest;

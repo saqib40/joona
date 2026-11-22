@@ -621,6 +621,7 @@ impl Controller {
             None => Engine::Closed,
         };
         let tap = Tap::new(Recording::new(), engine);
+        crate::audio::ensure_mic_access();
         self.open_mic(id, &tap, settings.general.microphone.clone());
         if let Some(local) = &listener {
             self.open_engine(id, 0, local);
@@ -918,8 +919,18 @@ impl Controller {
         if muted {
             self.dictations.remove(&id);
             let toast = if audio::mic_access().blocked() {
-                Toast::new(Tone::Warning, "Windows is blocking your microphone")
-                    .detail("Turn on microphone access for desktop apps in Windows Settings.")
+                #[cfg(target_os = "macos")]
+                let (title, detail) = (
+                    "macOS is blocking your microphone",
+                    "Turn on microphone access for Joona in System Settings › Privacy & Security › Microphone.",
+                );
+                #[cfg(not(target_os = "macos"))]
+                let (title, detail) = (
+                    "Windows is blocking your microphone",
+                    "Turn on microphone access for desktop apps in Windows Settings.",
+                );
+                Toast::new(Tone::Warning, title)
+                    .detail(detail)
                     .action(ToastAction::OpenMicSettings, "Open Settings")
             } else {
                 Toast::new(Tone::Warning, "Your microphone seems muted")

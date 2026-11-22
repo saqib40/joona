@@ -74,6 +74,34 @@ pub fn mic_access() -> MicAccess {
 unsafe extern "C" {}
 
 #[cfg(target_os = "macos")]
+pub fn ensure_mic_access() {
+    use block2::RcBlock;
+    use objc2::class;
+    use objc2::msg_send;
+    use objc2_foundation::NSString;
+
+    let media_type = NSString::from_str("soun");
+    let cls = class!(AVCaptureDevice);
+    let status: isize = unsafe { msg_send![cls, authorizationStatusForMediaType: &*media_type] };
+    if status == 0 {
+        tracing::info!("requesting macOS microphone access from user...");
+        let block = RcBlock::new(|granted: objc2::runtime::Bool| {
+            tracing::info!(
+                granted = granted.as_bool(),
+                "macOS microphone permission prompt responded"
+            );
+        });
+        unsafe {
+            let _: () =
+                msg_send![cls, requestAccessForMediaType: &*media_type, completionHandler: &*block];
+        }
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn ensure_mic_access() {}
+
+#[cfg(target_os = "macos")]
 pub fn mic_access() -> MicAccess {
     use objc2::class;
     use objc2::msg_send;
@@ -83,10 +111,13 @@ pub fn mic_access() -> MicAccess {
     let cls = class!(AVCaptureDevice);
     let status: isize = unsafe { msg_send![cls, authorizationStatusForMediaType: &*media_type] };
     match status {
-        0 => MicAccess::Allowed, // AVAuthorizationStatusNotDetermined (system will prompt on recording)
+        0 => {
+            ensure_mic_access();
+            MicAccess::Allowed // system dialog will appear
+        }
         1 => MicAccess::BlockedForDevice, // AVAuthorizationStatusRestricted
-        2 => MicAccess::BlockedForUser, // AVAuthorizationStatusDenied
-        3 => MicAccess::Allowed, // AVAuthorizationStatusAuthorized
+        2 => MicAccess::BlockedForUser,   // AVAuthorizationStatusDenied
+        3 => MicAccess::Allowed,          // AVAuthorizationStatusAuthorized
         _ => MicAccess::Allowed,
     }
 }

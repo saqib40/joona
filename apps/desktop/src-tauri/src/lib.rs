@@ -210,6 +210,7 @@ fn setup(app: &AppHandle, background: bool) -> anyhow::Result<()> {
     hub::style(&hub, initial.general.theme);
 
     sounds::prepare();
+    crate::audio::ensure_mic_access();
     session::spawn(state.clone(), commands);
     start_hotkeys(&state, &initial);
     tray::create(app, &initial)?;

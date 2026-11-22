@@ -3,6 +3,13 @@
 Each release's notes come from its section here. Joona shows the first line
 when it offers the update, so keep that line to one plain sentence.
 
+## 0.2.5
+
+Fixes macOS microphone permission prompt so Joona asks for microphone access on launch and dictation.
+
+- Added native AVFoundation `requestAccessForMediaType:` prompt on macOS: Joona now actively triggers the system permission dialog ("Joona would like to access the microphone") instead of relying on CoreAudio, which silently delivered digital silence without prompting.
+- Updated muted microphone alerts on macOS to direct users to macOS System Settings › Privacy & Security › Microphone.
+
 ## 0.2.4
 
 Improves macOS permission handling, instant model switching, and website features.

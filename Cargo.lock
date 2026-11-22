@@ -2641,10 +2641,11 @@ dependencies = [
 
 [[package]]
 name = "joona"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
+ "block2",
  "chrono",
  "core-foundation 0.10.1",
  "core-graphics",
@@ -2690,7 +2691,7 @@ dependencies = [
 
 [[package]]
 name = "joona-engine"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -2705,7 +2706,7 @@ dependencies = [
 
 [[package]]
 name = "joona-protocol"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "base64 0.22.1",
  "serde",
