@@ -103,6 +103,11 @@ pub fn run() {
                 e.into()
             })
         })
+        .on_menu_event(|app, event| {
+            if event.id().as_ref() == "menu_settings" {
+                show_hub(app, Some("settings"));
+            }
+        })
         .on_window_event(|window, event| {
             if window.label() != "hub" {
                 return;
@@ -132,6 +137,9 @@ pub fn run() {
         .expect("error while building Joona");
 
     app.run(|app, event| match event {
+        RunEvent::Reopen { .. } => {
+            show_hub(app, None);
+        }
         RunEvent::ExitRequested {
             code: None, api, ..
         } => api.prevent_exit(),
@@ -142,7 +150,81 @@ pub fn run() {
 
 fn setup(app: &AppHandle, background: bool) -> anyhow::Result<()> {
     #[cfg(target_os = "macos")]
-    let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+    {
+        let pkg_info = app.package_info();
+        let config = app.config();
+        let about_metadata = tauri::menu::AboutMetadata {
+            name: Some(pkg_info.name.clone()),
+            version: Some(pkg_info.version.to_string()),
+            copyright: config.bundle.copyright.clone(),
+            authors: config.bundle.publisher.clone().map(|p| vec![p]),
+            ..Default::default()
+        };
+
+        let app_submenu = tauri::menu::Submenu::with_items(
+            app,
+            pkg_info.name.clone(),
+            true,
+            &[
+                &tauri::menu::PredefinedMenuItem::about(app, None, Some(about_metadata))?,
+                &tauri::menu::MenuItem::with_id(
+                    app,
+                    "menu_settings",
+                    "Settings…",
+                    true,
+                    Some("CmdOrCtrl+,"),
+                )?,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
+                &tauri::menu::PredefinedMenuItem::services(app, None)?,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
+                &tauri::menu::PredefinedMenuItem::hide(app, None)?,
+                &tauri::menu::PredefinedMenuItem::hide_others(app, None)?,
+                &tauri::menu::PredefinedMenuItem::show_all(app, None)?,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
+                &tauri::menu::PredefinedMenuItem::quit(app, None)?,
+            ],
+        )?;
+
+        let file_submenu = tauri::menu::Submenu::with_items(
+            app,
+            "File",
+            true,
+            &[&tauri::menu::PredefinedMenuItem::close_window(app, None)?],
+        )?;
+
+        let edit_submenu = tauri::menu::Submenu::with_items(
+            app,
+            "Edit",
+            true,
+            &[
+                &tauri::menu::PredefinedMenuItem::undo(app, None)?,
+                &tauri::menu::PredefinedMenuItem::redo(app, None)?,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
+                &tauri::menu::PredefinedMenuItem::cut(app, None)?,
+                &tauri::menu::PredefinedMenuItem::copy(app, None)?,
+                &tauri::menu::PredefinedMenuItem::paste(app, None)?,
+                &tauri::menu::PredefinedMenuItem::select_all(app, None)?,
+            ],
+        )?;
+
+        let window_submenu = tauri::menu::Submenu::with_items(
+            app,
+            "Window",
+            true,
+            &[
+                &tauri::menu::PredefinedMenuItem::minimize(app, None)?,
+                &tauri::menu::PredefinedMenuItem::maximize(app, None)?,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
+                &tauri::menu::PredefinedMenuItem::close_window(app, None)?,
+            ],
+        )?;
+
+        let menu = tauri::menu::Menu::with_items(
+            app,
+            &[&app_submenu, &file_submenu, &edit_submenu, &window_submenu],
+        )?;
+        let _ = app.set_menu(menu);
+    }
 
     let settings = SettingsStore::load(paths::settings_file());
     let initial = settings.get();

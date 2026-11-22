@@ -7,6 +7,7 @@ import {
   House,
   KeyRound,
   Languages,
+  LogOut,
   type LucideIcon,
   Palette,
   Settings,
@@ -14,6 +15,7 @@ import {
   TextQuote,
 } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { commands } from "@/lib/bindings";
 import { cn, isMac } from "@/lib/utils";
 import { type AiChoice, useAi } from "./ai";
 import { languageName } from "./languages";
@@ -52,6 +54,16 @@ export function Sidebar() {
       <UpdateChip />
       <ul className="space-y-0.5">
         <NavItem page="settings" label="Settings" icon={Settings} />
+        <li>
+          <button
+            type="button"
+            onClick={() => void commands.quitApp()}
+            className="flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] text-ink-soft transition-colors hover:bg-fill hover:text-ink"
+          >
+            <LogOut className="size-4 shrink-0 text-ink-soft" strokeWidth={1.9} />
+            <span>Quit Joona</span>
+          </button>
+        </li>
       </ul>
       <PrivacyChip />
     </nav>

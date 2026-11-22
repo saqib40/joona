@@ -264,6 +264,7 @@ pub fn specta() -> tauri_specta::Builder<tauri::Wry> {
             local_ai_download,
             local_ai_cancel,
             local_ai_delete,
+            quit_app,
         ])
         .events(tauri_specta::collect_events![
             BarStateChanged,
@@ -1581,6 +1582,13 @@ impl OverlayEvents for OverlayBridge {
     fn resting(&self, visible: bool) {
         let _ = BarResting(visible).emit_to(&self.0, "bar");
     }
+}
+
+/// Closes Joona completely.
+#[tauri::command]
+#[specta::specta]
+fn quit_app(app: AppHandle) {
+    app.exit(0);
 }
 
 #[cfg(test)]

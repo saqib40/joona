@@ -2,6 +2,7 @@ import { MotionConfig } from "motion/react";
 import { type CSSProperties, useEffect } from "react";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { commands } from "@/lib/bindings";
 import { Onboarding } from "./onboarding/Onboarding";
 import { Dictionary } from "./pages/Dictionary";
 import { Home } from "./pages/Home";
@@ -22,6 +23,16 @@ export function App() {
   const loaded = useHub((s) => s.settings !== null);
   const onboarded = useHub((s) => s.settings?.onboarded ?? false);
   useEffect(() => applyTheme(theme), [theme]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "q") {
+        void commands.quitApp();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   return (
     <MotionConfig reducedMotion="user">

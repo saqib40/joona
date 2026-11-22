@@ -3,6 +3,16 @@
 Each release's notes come from its section here. Joona shows the first line
 when it offers the update, so keep that line to one plain sentence.
 
+## 0.2.6
+
+Restores the native macOS top application menu bar, Dock integration, and accessible Quit controls.
+
+- Added native macOS top menu bar (` Joona`, `File`, `Edit`, `Window`) with standard shortcuts for Settings (`Cmd+,`), Quit (`Cmd+Q`), Close (`Cmd+W`), and full Edit operations (Undo, Redo, Cut, Copy, Paste, Select All).
+- Restored standard macOS application activation and Dock integration so clicking Joona in the Dock re-opens the Hub.
+- Added "Quit Joona" to the menu bar tray icon with macOS left-click menu support.
+- Added "Quit Joona" button to the Hub sidebar and right-click floating bar menu.
+- Added `Cmd+Q` (macOS) and `Ctrl+Q` (Windows/Linux) keyboard shortcut to immediately close Joona from the Hub.
+
 ## 0.2.5
 
 Fixes macOS microphone permission prompt so Joona asks for microphone access on launch and dictation.

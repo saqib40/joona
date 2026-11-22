@@ -3,7 +3,7 @@ resolver = "3"
 members = ["apps/desktop/src-tauri", "crates/joona-protocol", "crates/joona-engine"]
 
 [workspace.package]
-version = "0.2.5"
+version = "0.2.6"
 edition = "2024"
 license = "MIT"
 authors = ["Joona contributors"]

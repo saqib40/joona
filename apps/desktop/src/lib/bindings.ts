@@ -131,6 +131,8 @@ export const commands = {
 	localAiCancel: (options?: InvokeOptions) => __TAURI_INVOKE<void>("local_ai_cancel", undefined, options),
 	/**  Deletes Joona's own AI model. Smart polish stops using it. */
 	localAiDelete: (options?: InvokeOptions) => __TAURI_INVOKE<null>("local_ai_delete", undefined, options),
+	/**  Closes Joona completely. */
+	quitApp: (options?: InvokeOptions) => __TAURI_INVOKE<void>("quit_app", undefined, options),
 };
 
 /** Events */

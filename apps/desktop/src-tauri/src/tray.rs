@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use tauri::image::Image;
 use tauri::menu::{CheckMenuItem, IsMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu};
+#[allow(unused_imports)]
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, Wry};
 
@@ -18,22 +19,26 @@ const LISTENING: &[u8] = include_bytes!("../icons/tray/listening.png");
 const PAUSED: &[u8] = include_bytes!("../icons/tray/paused.png");
 
 pub fn create(app: &AppHandle, settings: &Settings) -> tauri::Result<()> {
+    let show_menu_on_left = cfg!(target_os = "macos");
     TrayIconBuilder::with_id(TRAY_ID)
         .icon(Image::from_bytes(icon_for(false, settings.general.paused))?)
         .tooltip(tooltip(settings))
         .menu(&menu(app, settings)?)
-        .show_menu_on_left_click(false)
+        .show_menu_on_left_click(show_menu_on_left)
         .on_menu_event(|app, event| on_menu(app, event.id().as_ref()))
-        .on_tray_icon_event(|tray, event| {
-            if let TrayIconEvent::Click {
-                button: MouseButton::Left,
-                button_state: MouseButtonState::Up,
-                ..
-            } = event
-            {
-                crate::show_hub(tray.app_handle(), None);
-            }
-        })
+        .on_tray_icon_event(
+            |#[allow(unused_variables)] tray, #[allow(unused_variables)] event| {
+                #[cfg(not(target_os = "macos"))]
+                if let TrayIconEvent::Click {
+                    button: MouseButton::Left,
+                    button_state: MouseButtonState::Up,
+                    ..
+                } = event
+                {
+                    crate::show_hub(tray.app_handle(), None);
+                }
+            },
+        )
         .build(app)?;
     Ok(())
 }

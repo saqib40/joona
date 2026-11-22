@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
-import { Check, EyeOff, Languages, LayoutGrid, Pause, Settings2 } from "lucide-react";
+import { Check, EyeOff, Languages, LayoutGrid, LogOut, Pause, Settings2 } from "lucide-react";
 import type { ReactNode } from "react";
+import { commands } from "@/lib/bindings";
 import { cn } from "@/lib/utils";
 import { bar } from "./connect";
 import { useBar } from "./store";
@@ -67,6 +68,10 @@ export function BarMenu() {
               </Item>
             </>
           )}
+          <Separator />
+          <Item icon={<LogOut />} onClick={() => void commands.quitApp()}>
+            Quit Joona
+          </Item>
         </>
       )}
     </motion.div>
