@@ -54,6 +54,7 @@ pub struct Updates {
     /// The release the last check found.
     found: Mutex<Option<Update>>,
     checking: AtomicBool,
+    installing: AtomicBool,
 }
 
 impl Default for Updates {
@@ -65,7 +66,16 @@ impl Default for Updates {
             }),
             found: Mutex::new(None),
             checking: AtomicBool::new(false),
+            installing: AtomicBool::new(false),
         }
+    }
+}
+
+struct ResetFlag<'a>(&'a AtomicBool);
+
+impl Drop for ResetFlag<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::SeqCst);
     }
 }
 
@@ -117,10 +127,12 @@ pub async fn check(app: &AppHandle, state: &AppState, quiet: bool) -> UpdateStat
         UpdateStatus::Unsupported
             | UpdateStatus::Downloading { .. }
             | UpdateStatus::Installing { .. }
-    ) || updates.checking.swap(true, Ordering::SeqCst)
+    ) || updates.installing.load(Ordering::SeqCst)
+        || updates.checking.swap(true, Ordering::SeqCst)
     {
         return before;
     }
+    let _checking_guard = ResetFlag(&updates.checking);
     if !quiet {
         set(app, updates, UpdateStatus::Checking);
     }
@@ -128,6 +140,14 @@ pub async fn check(app: &AppHandle, state: &AppState, quiet: bool) -> UpdateStat
         Ok(updater) => updater.check().await,
         Err(e) => Err(e),
     };
+    if updates.installing.load(Ordering::SeqCst)
+        || matches!(
+            updates.status(),
+            UpdateStatus::Downloading { .. } | UpdateStatus::Installing { .. }
+        )
+    {
+        return updates.status();
+    }
     let status = match found {
         Ok(Some(update)) => {
             tracing::info!(version = %update.version, "an update is available");
@@ -152,7 +172,6 @@ pub async fn check(app: &AppHandle, state: &AppState, quiet: bool) -> UpdateStat
             }
         }
     };
-    updates.checking.store(false, Ordering::SeqCst);
     set(app, updates, status.clone());
     status
 }
@@ -161,6 +180,10 @@ pub async fn check(app: &AppHandle, state: &AppState, quiet: bool) -> UpdateStat
 /// installer, which closes Joona and opens it again when it's done.
 pub async fn install(app: &AppHandle, state: &AppState) -> Result<(), String> {
     let updates = &state.updates;
+    if updates.installing.swap(true, Ordering::SeqCst) {
+        return Err("An update is already being installed.".into());
+    }
+    let _installing_guard = ResetFlag(&updates.installing);
     let Some(update) = updates.lock_found().clone() else {
         return Err("There's no update to install. Check for updates again.".into());
     };
