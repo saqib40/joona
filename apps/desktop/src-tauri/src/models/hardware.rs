@@ -137,18 +137,17 @@ fn gpus() -> Vec<Gpu> {
     use objc2_foundation::NSString;
 
     let device_ptr = unsafe { MTLCreateSystemDefaultDevice() };
-    if device_ptr.is_null() {
+    let Some(device) = (unsafe { Retained::<AnyObject>::from_raw(device_ptr.cast()) }) else {
         return Vec::new();
-    }
-    let device: &AnyObject = unsafe { &*(device_ptr as *const AnyObject) };
+    };
 
-    let name_retained: Option<Retained<NSString>> = unsafe { msg_send![device, name] };
+    let name_retained: Option<Retained<NSString>> = unsafe { msg_send![&*device, name] };
     let name = name_retained
         .map(|s| s.to_string())
         .unwrap_or_else(|| "Apple Metal GPU".into());
 
-    let max_vram: u64 = unsafe { msg_send![device, recommendedMaxWorkingSetSize] };
-    let has_unified: bool = unsafe { msg_send![device, hasUnifiedMemory] };
+    let max_vram: u64 = unsafe { msg_send![&*device, recommendedMaxWorkingSetSize] };
+    let has_unified: bool = unsafe { msg_send![&*device, hasUnifiedMemory] };
 
     let vram_mb = max_vram >> 20;
 

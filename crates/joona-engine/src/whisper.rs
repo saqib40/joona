@@ -120,7 +120,10 @@ impl Whisper {
             (None, None)
         };
 
-        if job.task == Task::Translate && !self.multilingual && language.as_deref() != Some("en") {
+        if job.task == Task::Translate
+            && !self.multilingual
+            && job.language.is_some_and(|l| l != "en")
+        {
             anyhow::bail!(crate::Unsupported(
                 "this Whisper model is English-only and can't translate".into()
             ));

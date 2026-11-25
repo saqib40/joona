@@ -79,10 +79,10 @@ pub fn chosen(settings: &Settings, keys: &Keys, local: &LocalAi) -> Result<Chose
         .and_then(llm::spec)
         .ok_or(NotReady::NoProvider)?;
     let base = match (spec.endpoint, &polish.endpoint) {
-        (true, Some(endpoint)) => endpoint.clone(),
+        (true, Some(endpoint)) if !endpoint.trim().is_empty() => endpoint.clone(),
         _ => spec.base.to_owned(),
     };
-    if base.is_empty() && !spec.local {
+    if base.is_empty() && (spec.endpoint || !spec.local) {
         return Err(NotReady::NoEndpoint);
     }
     let cloud = llm::sends_away(spec, &base);

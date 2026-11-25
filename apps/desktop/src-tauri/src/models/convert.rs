@@ -258,14 +258,21 @@ fn read_npz_f32(path: &Path, entry: &str) -> anyhow::Result<(usize, usize, Vec<f
 
 fn parse_npy_f32(data: &[u8]) -> anyhow::Result<(usize, usize, Vec<f32>)> {
     anyhow::ensure!(
-        data.len() > 10 && &data[..6] == b"\x93NUMPY",
+        data.len() >= 10 && &data[..6] == b"\x93NUMPY",
         "not a NumPy array"
     );
-    let (header_len, start) = match data[6] {
+    let (header_len, start): (usize, usize) = match data[6] {
         1 => (u16::from_le_bytes([data[8], data[9]]) as usize, 10),
-        _ => (u32::from_le_bytes(data[8..12].try_into()?) as usize, 12),
+        _ => {
+            anyhow::ensure!(data.len() >= 12, "truncated NumPy header");
+            (u32::from_le_bytes(data[8..12].try_into()?) as usize, 12)
+        }
     };
-    let header = std::str::from_utf8(&data[start..start + header_len])?;
+    let end = start
+        .checked_add(header_len)
+        .filter(|&e| e <= data.len())
+        .ok_or_else(|| anyhow::anyhow!("truncated NumPy header"))?;
+    let header = std::str::from_utf8(&data[start..end])?;
     anyhow::ensure!(
         header.contains("'<f4'"),
         "expected little-endian float32, got {header}"
@@ -287,10 +294,15 @@ fn parse_npy_f32(data: &[u8]) -> anyhow::Result<(usize, usize, Vec<f32>)> {
         .filter_map(|s| s.trim().parse().ok())
         .collect();
     anyhow::ensure!(dims.len() == 2, "expected a 2-D array, got {dims:?}");
-    let body = &data[start + header_len..];
-    let count = dims[0] * dims[1];
-    anyhow::ensure!(body.len() >= count * 4, "array data is truncated");
-    let values = body[..count * 4]
+    let body = &data[end..];
+    let count = dims[0]
+        .checked_mul(dims[1])
+        .ok_or_else(|| anyhow::anyhow!("array dimensions overflow"))?;
+    let byte_len = count
+        .checked_mul(4)
+        .ok_or_else(|| anyhow::anyhow!("array byte length overflows"))?;
+    anyhow::ensure!(body.len() >= byte_len, "array data is truncated");
+    let values = body[..byte_len]
         .as_chunks::<4>()
         .0
         .iter()
