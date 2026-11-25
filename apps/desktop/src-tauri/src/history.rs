@@ -232,24 +232,30 @@ impl History {
         Ok(rows.next().transpose()?)
     }
 
-    /// Newest first. `before` is the `created_at` of the last entry already shown.
+    /// Newest first. `before` and `before_id` are the `created_at` and `id` of
+    /// the last entry already shown.
     pub fn list(
         &self,
         search: &str,
         before: Option<i64>,
+        before_id: Option<i64>,
         limit: u32,
     ) -> anyhow::Result<Vec<Entry>> {
         let db = self.db();
         let pattern = format!("%{}%", escape_like(search.trim()));
+        let (before_ts, before_row_id) = match before {
+            Some(ts) => (ts, before_id.unwrap_or(i64::MIN)),
+            None => (i64::MAX, i64::MAX),
+        };
         let mut stmt = db.prepare(&format!(
             "SELECT {COLUMNS} FROM dictations
-             WHERE created_at < ?1
-               AND (?2 = '%%' OR text LIKE ?2 ESCAPE '\\' OR raw LIKE ?2 ESCAPE '\\' OR app_name LIKE ?2 ESCAPE '\\')
+             WHERE (created_at, id) < (?1, ?2)
+               AND (?3 = '%%' OR text LIKE ?3 ESCAPE '\\' OR raw LIKE ?3 ESCAPE '\\' OR app_name LIKE ?3 ESCAPE '\\')
              ORDER BY created_at DESC, id DESC
-             LIMIT ?3"
+             LIMIT ?4"
         ))?;
         let rows = stmt.query_map(
-            params![before.unwrap_or(i64::MAX), pattern, limit],
+            params![before_ts, before_row_id, pattern, limit],
             row_to_entry,
         )?;
         Ok(rows.collect::<Result<_, _>>()?)
@@ -386,7 +392,7 @@ impl History {
     }
 
     pub fn export(&self, path: &Path, format: ExportFormat) -> anyhow::Result<usize> {
-        let entries = self.list("", None, u32::MAX)?;
+        let entries = self.list("", None, None, u32::MAX)?;
         match format {
             ExportFormat::Json => std::fs::write(path, serde_json::to_vec_pretty(&entries)?)?,
             ExportFormat::Csv => {
@@ -604,25 +610,25 @@ mod tests {
             .unwrap();
         assert!(b.id > a.id);
 
-        let all = history.list("", None, 10).unwrap();
+        let all = history.list("", None, None, 10).unwrap();
         assert_eq!(all.iter().map(|e| e.id).collect::<Vec<_>>(), [b.id, a.id]);
         assert_eq!(
-            history.list("MEET", None, 10).unwrap().len(),
+            history.list("MEET", None, None, 10).unwrap().len(),
             1,
             "search ignores case"
         );
         assert_eq!(
-            history.list("100%", None, 10).unwrap().len(),
+            history.list("100%", None, None, 10).unwrap().len(),
             1,
             "% is literal"
         );
         assert_eq!(
-            history.list("slack", None, 10).unwrap().len(),
+            history.list("slack", None, None, 10).unwrap().len(),
             1,
             "app names match"
         );
         assert_eq!(
-            history.list("", Some(b.created_at), 10).unwrap()[0].id,
+            history.list("", Some(b.created_at), None, 10).unwrap()[0].id,
             a.id,
             "pages by time"
         );
@@ -637,7 +643,20 @@ mod tests {
         history.delete(a.id).unwrap();
         assert!(history.get(a.id).unwrap().is_none());
         history.clear().unwrap();
-        assert!(history.list("", None, 10).unwrap().is_empty());
+        assert!(history.list("", None, None, 10).unwrap().is_empty());
+
+        // Entries sharing the same created_at paginate without skipping.
+        let ts = noon(today);
+        let id1 = history.add(entry(ts, "one", "app.exe")).unwrap().id;
+        let id2 = history.add(entry(ts, "two", "app.exe")).unwrap().id;
+        let id3 = history.add(entry(ts, "three", "app.exe")).unwrap().id;
+        let page1 = history.list("", None, None, 2).unwrap();
+        assert_eq!(page1.iter().map(|e| e.id).collect::<Vec<_>>(), [id3, id2]);
+        let last = page1.last().unwrap();
+        let page2 = history
+            .list("", Some(last.created_at), Some(last.id), 2)
+            .unwrap();
+        assert_eq!(page2.iter().map(|e| e.id).collect::<Vec<_>>(), [id1]);
     }
 
     #[test]

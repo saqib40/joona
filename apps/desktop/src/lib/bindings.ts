@@ -51,8 +51,8 @@ export const commands = {
 	 *  and opens again once it's installed.
 	 */
 	updateInstall: (options?: InvokeOptions) => __TAURI_INVOKE<null>("update_install", undefined, options),
-	/**  Newest first. `before` is the `createdAt` of the last entry already shown. */
-	historyList: (search: string, before: number | null, limit: number, options?: InvokeOptions) => __TAURI_INVOKE<Entry_Serialize[]>("history_list", { search, before, limit }, options),
+	/**  Newest first. `before` and `before_id` are the `createdAt` and `id` of the last entry already shown. */
+	historyList: (search: string, before: number | null, beforeId: number | null, limit: number, options?: InvokeOptions) => __TAURI_INVOKE<Entry_Serialize[]>("history_list", { search, before, beforeId, limit }, options),
 	historyDelete: (id: number, options?: InvokeOptions) => __TAURI_INVOKE<null>("history_delete", { id }, options),
 	historyClear: (options?: InvokeOptions) => __TAURI_INVOKE<null>("history_clear", undefined, options),
 	/**  Pastes an earlier dictation into the app the user was in before the Hub. */

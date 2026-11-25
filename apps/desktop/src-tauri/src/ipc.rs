@@ -604,17 +604,18 @@ async fn blocking<T: Send + 'static>(
         .map_err(|e| format!("{e:#}"))
 }
 
-/// Newest first. `before` is the `createdAt` of the last entry already shown.
+/// Newest first. `before` and `before_id` are the `createdAt` and `id` of the last entry already shown.
 #[tauri::command]
 #[specta::specta]
 async fn history_list(
     search: String,
     before: Option<i64>,
+    before_id: Option<i64>,
     limit: u32,
     state: State<'_, Arc<AppState>>,
 ) -> Result<Vec<Entry>, String> {
     let history = history_of(&state)?;
-    blocking(move || history.list(&search, before, limit.min(500))).await
+    blocking(move || history.list(&search, before, before_id, limit.min(500))).await
 }
 
 #[tauri::command]

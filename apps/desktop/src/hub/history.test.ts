@@ -30,11 +30,20 @@ function serve(entries: Entry[], delay = (_search: string) => 0) {
   const calls: { search: string; before: number | null }[] = [];
   mockIPC(async (cmd, args) => {
     if (cmd !== "history_list") return null;
-    const { search, before, limit } = args as { search: string; before: number | null; limit: number };
+    const { search, before, beforeId, limit } = args as {
+      search: string;
+      before: number | null;
+      beforeId: number | null;
+      limit: number;
+    };
     calls.push({ search, before });
     await new Promise((r) => setTimeout(r, delay(search)));
     return entries
-      .filter((e) => before === null || e.createdAt < before)
+      .filter((e) => {
+        if (before === null) return true;
+        if (e.createdAt < before) return true;
+        return beforeId !== null && e.createdAt === before && e.id < beforeId;
+      })
       .filter((e) => e.text.toLowerCase().includes(search.toLowerCase()))
       .slice(0, limit);
   });

@@ -515,7 +515,12 @@ class Backend {
         void events.modelsChanged.emit();
         return null;
       case "history_list":
-        return this.list(args.search as string, args.before as number | null, args.limit as number);
+        return this.list(
+          args.search as string,
+          args.before as number | null,
+          args.beforeId as number | null,
+          args.limit as number,
+        );
       case "history_delete":
         this.entries = this.entries.filter((e) => e.id !== args.id);
         void events.historyChanged.emit();
@@ -1015,10 +1020,14 @@ class Backend {
     return entry;
   }
 
-  list(search: string, before: number | null, limit: number): Entry[] {
+  list(search: string, before: number | null, beforeId: number | null, limit: number): Entry[] {
     const query = search.trim().toLowerCase();
     return this.entries
-      .filter((e) => before === null || e.createdAt < before)
+      .filter((e) => {
+        if (before === null) return true;
+        if (e.createdAt < before) return true;
+        return beforeId !== null && e.createdAt === before && e.id < beforeId;
+      })
       .filter((e) => !query || [e.text, e.raw, e.appName ?? ""].some((t) => t.toLowerCase().includes(query)))
       .slice(0, limit);
   }

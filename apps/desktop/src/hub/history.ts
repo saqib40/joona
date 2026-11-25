@@ -66,10 +66,12 @@ type Set = (partial: Partial<HistoryStore> | ((s: HistoryStore) => Partial<Histo
 async function load(set: Set, get: () => HistoryStore, fresh: boolean) {
   const mine = ++request;
   const { search, entries } = get();
-  const before = fresh ? null : (entries.at(-1)?.createdAt ?? null);
+  const last = fresh ? undefined : entries.at(-1);
+  const before = last?.createdAt ?? null;
+  const beforeId = last?.id ?? null;
   set({ loading: true });
   try {
-    const page = await commands.historyList(search, before, PAGE);
+    const page = await commands.historyList(search, before, beforeId, PAGE);
     if (mine !== request) return;
     set((s) => ({
       entries: fresh ? page : [...s.entries, ...page.filter((e) => !s.entries.some((x) => x.id === e.id))],
