@@ -106,14 +106,21 @@
     };
   }
 
-  function readCache() {
+  // Set OS-specific button label immediately while the latest release is fetched.
+  (function initLabel() {
+    var label = document.querySelector("[data-download-label]");
+    if (label && (os === "macos" || os === "windows")) {
+      label.textContent = "Download for " + (os === "macos" ? "macOS" : "Windows");
+    }
+  })();
+
+  function readCache(allowExpired) {
     try {
       var raw = localStorage.getItem(CACHE_KEY);
       if (!raw) return null;
       var cached = JSON.parse(raw);
-      if (!cached || !Array.isArray(cached.assets) || Date.now() - cached.savedAt > CACHE_TTL) {
-        return null;
-      }
+      if (!cached || !Array.isArray(cached.assets)) return null;
+      if (!allowExpired && Date.now() - cached.savedAt > CACHE_TTL) return null;
       return cached;
     } catch (_) {
       return null;
@@ -145,7 +152,7 @@
   }
 
   function loadRelease(onUpdate) {
-    var cached = readCache();
+    var cached = readCache(false);
     if (cached) {
       // Revalidate in background if cache is older than 1 minute
       if (Date.now() - cached.savedAt > 60 * 1000) {
@@ -158,7 +165,9 @@
       return Promise.resolve(cached);
     }
 
-    return fetchFreshRelease();
+    return fetchFreshRelease().then(function (fresh) {
+      return fresh || readCache(true);
+    });
   }
 
   function setLinks(href) {
@@ -169,12 +178,26 @@
   }
 
   function apply(release) {
-    var asset = release && (os === "windows" || os === "macos") ? pickAsset(release.assets, os) : null;
+    var macAsset = release ? pickAsset(release.assets, "macos") : null;
+    var winAsset = release ? pickAsset(release.assets, "windows") : null;
+    var asset = os === "macos" ? macAsset : os === "windows" ? winAsset : null;
+    var other = os === "macos" ? { name: "Windows (.exe)", asset: winAsset } : os === "windows" ? { name: "macOS (.dmg)", asset: macAsset } : null;
     var label = document.querySelector("[data-download-label]");
     var meta = document.querySelector("[data-download-meta]");
+    var alt = document.querySelector("[data-download-alt]");
     var href = (asset && asset.url) || (release && release.page) || RELEASES_PAGE;
 
     setLinks(href);
+
+    if (alt) {
+      if (other && other.asset) {
+        alt.href = other.asset.url;
+        alt.textContent = "Also for " + other.name;
+        alt.hidden = false;
+      } else {
+        alt.hidden = true;
+      }
+    }
 
     if (!label) return;
 
