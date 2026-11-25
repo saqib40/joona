@@ -38,9 +38,13 @@ The first time Joona opens, it asks which languages you speak, checks your micro
 
 You can customize every shortcut in **Settings › General**. For a full reference guide with your platform highlighted, see [Commands](https://saqib40.github.io/joona/commands.html).
 
+- **Basic cleanup vs. Smart polish:** *Basic cleanup* removes filler words and fixes punctuation locally. *Smart polish* sends your transcribed text to whichever AI provider you selected in **Models › AI models** (or **Settings › Polish**) — even when speech-to-text runs locally on your PC.
+- **Privacy badge:** The chip at the bottom of the sidebar always shows everything leaving your device (for example, `Cloud: Sarvam (Hindi and Malayalam) & Sarvam polish`).
+- **Other keys cancel:** Pressing another key within a second of starting a dictation cancels it and passes the key through, so your normal shortcuts keep working.
+
 ## What leaves your device
 
-- **Nothing you say**, unless you turn on a cloud provider such as Sarvam or configure your own API keys. Joona asks first and shows a cloud badge whenever audio or text is sent online.
+- **Nothing you say**, unless you turn on a cloud speech provider (such as Sarvam or your own STT key) or a cloud **Smart polish** model. Speech-to-text and Smart polish are independent: if you use local speech-to-text with a cloud Smart polish provider, audio stays on your PC and only the transcribed text is sent for polishing. Joona asks for consent first and shows a cloud badge in the sidebar whenever audio or text leaves your device.
 - **Model downloads**, when you choose a speech model, from Hugging Face, OpenAI, GitHub, and the [Handy](https://github.com/cjpais/Handy) project's mirror.
 - **Update checks.** About twice a day, Joona checks GitHub for newer releases. You can turn this off in *Settings › About*.
 
