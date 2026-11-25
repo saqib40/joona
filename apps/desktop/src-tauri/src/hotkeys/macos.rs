@@ -1,14 +1,22 @@
 //! Low-level macOS keyboard tap on a dedicated thread using CoreGraphics CGEventTap.
 
+use std::collections::HashSet;
+use std::ffi::c_void;
+use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc as std_mpsc;
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
 use core_foundation::base::TCFType;
 use core_foundation::boolean::CFBoolean;
+use core_foundation::date::CFAbsoluteTimeGetCurrent;
 use core_foundation::dictionary::CFDictionary;
-use core_foundation::runloop::{CFRunLoop, kCFRunLoopCommonModes};
+use core_foundation::mach_port::CFMachPortRef;
+use core_foundation::runloop::{
+    CFRunLoop, CFRunLoopTimer, CFRunLoopTimerRef, kCFRunLoopCommonModes,
+};
 use core_foundation::string::CFString;
 use core_graphics::event::{
     CGEventFlags, CGEventTap, CGEventTapLocation, CGEventTapOptions, CGEventTapPlacement,
@@ -25,6 +33,7 @@ pub const JOONA_INPUT_MARKER: usize = 0x4A4F_4F4E; // "JOON"
 #[link(name = "CoreGraphics", kind = "framework")]
 unsafe extern "C" {
     fn CGEventSourceFlagsState(stateID: i32) -> u64;
+    fn CGEventTapEnable(tap: CFMachPortRef, enable: bool);
 }
 
 #[link(name = "ApplicationServices", kind = "framework")]
@@ -60,6 +69,7 @@ struct Shared {
     tx: UnboundedSender<Action>,
     epoch: Instant,
     last_flags: CGEventFlags,
+    down_modifiers: HashSet<u16>,
     run_loop: Option<CFRunLoop>,
     recorder: Option<(Recorder, UnboundedSender<Recorded>)>,
 }
@@ -244,36 +254,54 @@ fn mac_keycode_to_vk(code: u16) -> Option<u16> {
     }
 }
 
-fn modifier_from_keycode(code: u16, flags: CGEventFlags) -> Option<(u16, bool)> {
+fn modifier_spec(code: u16) -> Option<(u16, CGEventFlags)> {
     match code {
-        KeyCode::COMMAND => Some((vk::LWIN, flags.contains(CGEventFlags::CGEventFlagCommand))),
-        KeyCode::RIGHT_COMMAND => {
-            Some((vk::RWIN, flags.contains(CGEventFlags::CGEventFlagCommand)))
-        }
-        KeyCode::CONTROL => Some((
-            vk::LCONTROL,
-            flags.contains(CGEventFlags::CGEventFlagControl),
-        )),
-        KeyCode::RIGHT_CONTROL => Some((
-            vk::RCONTROL,
-            flags.contains(CGEventFlags::CGEventFlagControl),
-        )),
-        KeyCode::OPTION => Some((
-            vk::LMENU,
-            flags.contains(CGEventFlags::CGEventFlagAlternate),
-        )),
-        KeyCode::RIGHT_OPTION => Some((
-            vk::RMENU,
-            flags.contains(CGEventFlags::CGEventFlagAlternate),
-        )),
-        KeyCode::SHIFT => Some((vk::LSHIFT, flags.contains(CGEventFlags::CGEventFlagShift))),
-        KeyCode::RIGHT_SHIFT => Some((vk::RSHIFT, flags.contains(CGEventFlags::CGEventFlagShift))),
-        KeyCode::CAPS_LOCK => Some((
-            vk::CAPITAL,
-            flags.contains(CGEventFlags::CGEventFlagAlphaShift),
-        )),
+        KeyCode::COMMAND => Some((vk::LWIN, CGEventFlags::CGEventFlagCommand)),
+        KeyCode::RIGHT_COMMAND => Some((vk::RWIN, CGEventFlags::CGEventFlagCommand)),
+        KeyCode::CONTROL => Some((vk::LCONTROL, CGEventFlags::CGEventFlagControl)),
+        KeyCode::RIGHT_CONTROL => Some((vk::RCONTROL, CGEventFlags::CGEventFlagControl)),
+        KeyCode::OPTION => Some((vk::LMENU, CGEventFlags::CGEventFlagAlternate)),
+        KeyCode::RIGHT_OPTION => Some((vk::RMENU, CGEventFlags::CGEventFlagAlternate)),
+        KeyCode::SHIFT => Some((vk::LSHIFT, CGEventFlags::CGEventFlagShift)),
+        KeyCode::RIGHT_SHIFT => Some((vk::RSHIFT, CGEventFlags::CGEventFlagShift)),
+        KeyCode::CAPS_LOCK => Some((vk::CAPITAL, CGEventFlags::CGEventFlagAlphaShift)),
         _ => None,
     }
+}
+
+fn resolve_modifier_event(
+    code: u16,
+    flags: CGEventFlags,
+    down_modifiers: &mut HashSet<u16>,
+) -> Option<(u16, bool)> {
+    let (vk_code, flag_bit) = modifier_spec(code)?;
+    let down = if !flags.contains(flag_bit) {
+        down_modifiers.remove(&code);
+        false
+    } else if down_modifiers.remove(&code) {
+        // The combined flag is still set because the opposite-side modifier is held,
+        // so this FlagsChanged event is a release of `code`.
+        false
+    } else {
+        down_modifiers.insert(code);
+        true
+    };
+    Some((vk_code, down))
+}
+
+fn tick() {
+    with_shared(|s| {
+        let now = s.epoch.elapsed().as_millis() as u64;
+        for action in s.machine.on_tick(now) {
+            if action != Action::InjectMask {
+                let _ = s.tx.send(action);
+            }
+        }
+    });
+}
+
+extern "C" fn on_tick_timer(_timer: CFRunLoopTimerRef, _info: *mut c_void) {
+    tick();
 }
 
 fn run_tap_thread(
@@ -288,9 +316,13 @@ fn run_tap_thread(
         tx,
         epoch: Instant::now(),
         last_flags: CGEventFlags::empty(),
+        down_modifiers: HashSet::new(),
         run_loop: Some(run_loop.clone()),
         recorder: None,
     });
+
+    let tap_port = Arc::new(AtomicUsize::new(0));
+    let tap_port_cb = Arc::clone(&tap_port);
 
     let tap = match CGEventTap::new(
         CGEventTapLocation::Session,
@@ -307,6 +339,10 @@ fn run_tap_thread(
                 CGEventType::TapDisabledByTimeout | CGEventType::TapDisabledByUserInput
             ) {
                 tracing::debug!("CGEventTap was disabled ({etype:?}), re-enabling");
+                let port = tap_port_cb.load(Ordering::Acquire);
+                if port != 0 {
+                    unsafe { CGEventTapEnable(port as CFMachPortRef, true) };
+                }
                 return CallbackResult::Keep;
             }
 
@@ -320,14 +356,15 @@ fn run_tap_thread(
 
             if matches!(etype, CGEventType::FlagsChanged) {
                 let flags = event.get_flags();
-                let last = with_shared(|s| {
+                let (last, resolved) = with_shared(|s| {
                     let prev = s.last_flags;
                     s.last_flags = flags;
-                    prev
+                    let resolved = resolve_modifier_event(keycode, flags, &mut s.down_modifiers);
+                    (prev, resolved)
                 })
                 .unwrap_or_default();
 
-                if let Some((vk_code, down)) = modifier_from_keycode(keycode, flags) {
+                if let Some((vk_code, down)) = resolved {
                     if feed(vk_code, down) {
                         return CallbackResult::Drop;
                     }
@@ -375,6 +412,7 @@ fn run_tap_thread(
     };
 
     let mach_port = tap.mach_port();
+    tap_port.store(mach_port.as_concrete_TypeRef() as usize, Ordering::Release);
     let source = match mach_port.create_runloop_source(0) {
         Ok(s) => s,
         Err(_) => {
@@ -384,9 +422,50 @@ fn run_tap_thread(
         }
     };
 
+    let tick_timer = CFRunLoopTimer::new(
+        unsafe { CFAbsoluteTimeGetCurrent() } + 0.05,
+        0.05,
+        0,
+        0,
+        on_tick_timer,
+        std::ptr::null_mut(),
+    );
+
     run_loop.add_source(&source, unsafe { kCFRunLoopCommonModes });
+    run_loop.add_timer(&tick_timer, unsafe { kCFRunLoopCommonModes });
     tap.enable();
 
     let _ = ready.send(Ok(()));
     CFRunLoop::run_current();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn releasing_one_of_two_held_modifiers_reports_up() {
+        let mut down = HashSet::new();
+        let cmd = CGEventFlags::CGEventFlagCommand;
+
+        assert_eq!(
+            resolve_modifier_event(KeyCode::COMMAND, cmd, &mut down),
+            Some((vk::LWIN, true))
+        );
+        assert_eq!(
+            resolve_modifier_event(KeyCode::RIGHT_COMMAND, cmd, &mut down),
+            Some((vk::RWIN, true))
+        );
+        // Releasing Left Command while Right Command is still held keeps the flag set.
+        assert_eq!(
+            resolve_modifier_event(KeyCode::COMMAND, cmd, &mut down),
+            Some((vk::LWIN, false))
+        );
+        // Releasing Right Command clears the flag.
+        assert_eq!(
+            resolve_modifier_event(KeyCode::RIGHT_COMMAND, CGEventFlags::empty(), &mut down),
+            Some((vk::RWIN, false))
+        );
+        assert!(down.is_empty());
+    }
 }
