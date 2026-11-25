@@ -13,6 +13,7 @@ mod whisper;
 
 use std::collections::HashMap;
 use std::io::{BufRead, Write};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, mpsc};
 use std::time::Instant;
@@ -97,7 +98,7 @@ impl Output {
 struct Session {
     params: OpenParams,
     audio: Vec<f32>,
-    scores: Option<speech::Scores>,
+    vad: Option<(speech::Detector, speech::Scores)>,
     cancel: Arc<AtomicBool>,
 }
 
@@ -113,7 +114,7 @@ struct Shared {
     /// Cancel flags of sessions handed to the worker.
     running: Mutex<HashMap<u64, Arc<AtomicBool>>>,
     loaded: Mutex<HashMap<String, LoadedInfo>>,
-    detector: Mutex<Option<speech::Detector>>,
+    vad_model: Mutex<Option<PathBuf>>,
     busy: AtomicBool,
     next_session: AtomicU64,
     threads: AtomicI32,
@@ -132,7 +133,7 @@ enum Job {
     Finish {
         id: Option<u64>,
         session_id: u64,
-        session: Session,
+        session: Box<Session>,
     },
 }
 
@@ -150,7 +151,7 @@ fn main() {
         sessions: Mutex::new(HashMap::new()),
         running: Mutex::new(HashMap::new()),
         loaded: Mutex::new(HashMap::new()),
-        detector: Mutex::new(None),
+        vad_model: Mutex::new(None),
         busy: AtomicBool::new(false),
         next_session: AtomicU64::new(0),
         threads: AtomicI32::new(default_threads()),
@@ -215,16 +216,14 @@ fn handle(shared: &Shared, jobs: &mpsc::Sender<Job>, req: Request) -> bool {
             let taken = lock(&shared.sessions).remove(&p.session);
             match taken {
                 Some(mut session) => {
-                    if let Some(scores) = &mut session.scores
-                        && let Some(det) = lock(&shared.detector).as_mut()
-                    {
+                    if let Some((det, scores)) = &mut session.vad {
                         scores.finish(det, &session.audio);
                     }
                     lock(&shared.running).insert(p.session, session.cancel.clone());
                     let _ = jobs.send(Job::Finish {
                         id,
                         session_id: p.session,
-                        session,
+                        session: Box::new(session),
                     });
                 }
                 None => shared.out.reply::<()>(id, Err(unknown_session(p.session))),
@@ -265,9 +264,9 @@ fn configure(shared: &Shared, p: ConfigureParams) -> Result<(), RpcError> {
             .store(beam.clamp(1, 8) as i32, Ordering::Relaxed);
     }
     if let Some(path) = p.vad_model {
-        let detector = speech::Detector::load(&path)
+        let _ = speech::Detector::load(&path)
             .map_err(|e| RpcError::new(ErrorCode::ModelLoadFailed, format!("{e:#}")))?;
-        *lock(&shared.detector) = Some(detector);
+        *lock(&shared.vad_model) = Some(path);
     }
     Ok(())
 }
@@ -279,10 +278,17 @@ fn open(shared: &Shared, p: OpenParams) -> Result<OpenResult, RpcError> {
             format!("{} is not loaded", p.model),
         ));
     }
-    let scores = if p.vad {
-        lock(&shared.detector).as_mut().map(|det| {
-            det.reset();
-            speech::Scores::default()
+    let vad = if p.vad {
+        let path = lock(&shared.vad_model).clone();
+        path.and_then(|path| match speech::Detector::load(&path) {
+            Ok(det) => Some((det, speech::Scores::default())),
+            Err(e) => {
+                shared.out.log(
+                    LogLevel::Warn,
+                    format!("couldn't open per-session VAD detector: {e:#}"),
+                );
+                None
+            }
         })
     } else {
         None
@@ -293,7 +299,7 @@ fn open(shared: &Shared, p: OpenParams) -> Result<OpenResult, RpcError> {
         Session {
             params: p,
             audio: Vec::with_capacity(SAMPLE_RATE as usize * 30),
-            scores,
+            vad,
             cancel: Arc::new(AtomicBool::new(false)),
         },
     );
@@ -310,9 +316,7 @@ fn feed(shared: &Shared, p: FeedParams) -> Result<(), RpcError> {
     }
     decode_pcm16_into(&p.pcm16, &mut s.audio)
         .map_err(|e| RpcError::new(ErrorCode::Protocol, format!("bad audio data: {e}")))?;
-    if let Some(scores) = &mut s.scores
-        && let Some(det) = lock(&shared.detector).as_mut()
-    {
+    if let Some((det, scores)) = &mut s.vad {
         scores.update(det, &s.audio);
     }
     Ok(())
@@ -362,7 +366,7 @@ fn worker(shared: &Shared, rx: mpsc::Receiver<Job>) {
                 session,
             } => {
                 shared.busy.store(true, Ordering::Relaxed);
-                let result = transcribe(shared, &mut models, session);
+                let result = transcribe(shared, &mut models, *session);
                 shared.busy.store(false, Ordering::Relaxed);
                 lock(&shared.running).remove(&session_id);
                 shared.out.reply(id, result);
@@ -438,7 +442,7 @@ fn transcribe(
         )
     })?;
     let audio_ms = samples_to_ms(session.audio.len());
-    let probs = session.scores.as_ref().map(|s| s.probs.as_slice());
+    let probs = session.vad.as_ref().map(|(_, s)| s.probs.as_slice());
     let prepared = speech::prepare(&session.audio, probs);
     let had_vad = probs.is_some();
     session.audio = Vec::new();

@@ -5,7 +5,7 @@ use std::ops::Range;
 use std::path::Path;
 
 use joona_protocol::{ms_to_samples, samples_to_ms};
-use transcribe_rs::vad::{SileroVad, Vad as _};
+use transcribe_rs::vad::SileroVad;
 
 /// Silero v4 scores 30 ms frames of 16 kHz audio.
 pub const FRAME: usize = 480;
@@ -27,10 +27,6 @@ impl Detector {
     pub fn load(path: &Path) -> anyhow::Result<Self> {
         let vad = SileroVad::new(path, START_PROB).map_err(|e| anyhow::anyhow!("{e}"))?;
         Ok(Self { vad })
-    }
-
-    pub fn reset(&mut self) {
-        self.vad.reset();
     }
 
     /// Speech probability of one [`FRAME`]. Errors count as speech, so a VAD
