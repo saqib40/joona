@@ -397,6 +397,7 @@ fn trimmed(value: Option<String>) -> Option<String> {
 pub struct SettingsStore {
     path: PathBuf,
     tx: watch::Sender<Settings>,
+    write_lock: std::sync::Mutex<()>,
 }
 
 impl SettingsStore {
@@ -425,6 +426,7 @@ impl SettingsStore {
         Self {
             path,
             tx: watch::channel(settings).0,
+            write_lock: std::sync::Mutex::new(()),
         }
     }
 
@@ -437,17 +439,23 @@ impl SettingsStore {
     }
 
     /// Replaces the settings, saves them and notifies subscribers.
-    pub fn set(&self, mut settings: Settings) -> anyhow::Result<Settings> {
+    pub fn set(&self, settings: Settings) -> anyhow::Result<Settings> {
+        let _guard = self.write_lock.lock().unwrap_or_else(|e| e.into_inner());
+        self.set_locked(settings)
+    }
+
+    pub fn update(&self, change: impl FnOnce(&mut Settings)) -> anyhow::Result<Settings> {
+        let _guard = self.write_lock.lock().unwrap_or_else(|e| e.into_inner());
+        let mut settings = self.get();
+        change(&mut settings);
+        self.set_locked(settings)
+    }
+
+    fn set_locked(&self, mut settings: Settings) -> anyhow::Result<Settings> {
         settings.sanitize();
         save(&self.path, &settings)?;
         self.tx.send_replace(settings.clone());
         Ok(settings)
-    }
-
-    pub fn update(&self, change: impl FnOnce(&mut Settings)) -> anyhow::Result<Settings> {
-        let mut settings = self.get();
-        change(&mut settings);
-        self.set(settings)
     }
 }
 
@@ -619,5 +627,36 @@ mod tests {
         assert_eq!(s.privacy.consented, ["sarvam"]);
         assert_eq!(s.languages.speak[0].engine, LanguageEngine::Sarvam);
         assert_eq!(s.languages.speak[1].engine, LanguageEngine::Local);
+    }
+
+    #[test]
+    fn concurrent_updates_do_not_lose_changes_or_corrupt_file() {
+        let dir = temp_dir("concurrent");
+        let _ = std::fs::remove_dir_all(&dir);
+        let path = dir.join("settings.json");
+        let store = std::sync::Arc::new(SettingsStore::load(&path));
+
+        std::thread::scope(|scope| {
+            let s1 = std::sync::Arc::clone(&store);
+            let s2 = std::sync::Arc::clone(&store);
+            let h1 = scope.spawn(move || {
+                for _ in 0..20 {
+                    s1.update(|s| s.general.paused = !s.general.paused).unwrap();
+                }
+            });
+            let h2 = scope.spawn(move || {
+                for i in 0..20 {
+                    s2.update(|s| s.models.active = Some(format!("model-{i}")))
+                        .unwrap();
+                }
+            });
+            h1.join().unwrap();
+            h2.join().unwrap();
+        });
+
+        let final_settings = SettingsStore::load(&path).get();
+        assert_eq!(final_settings.models.active.as_deref(), Some("model-19"));
+        assert!(!final_settings.general.paused);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
