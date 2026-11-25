@@ -18,8 +18,12 @@ export function connect(): Promise<void> {
 }
 
 async function listen() {
+  let sawSettings = false;
   await Promise.all([
-    events.settingsChanged.listen((e) => receiveSettings(e.payload)),
+    events.settingsChanged.listen((e) => {
+      sawSettings = true;
+      receiveSettings(e.payload);
+    }),
     events.hubNavigate.listen((e) => useHub.getState().navigate(e.payload)),
     events.historyAdded.listen((e) => useHistory.getState().added(e.payload)),
     events.historyChanged.listen(() => {
@@ -32,7 +36,7 @@ async function listen() {
     events.updateChanged.listen((e) => useUpdates.getState().receive(e.payload)),
   ]);
   const [settings, info] = await Promise.all([commands.getSettings(), commands.appInfo()]);
-  useHub.setState({ settings, info });
+  useHub.setState((s) => ({ settings: sawSettings ? s.settings : settings, info }));
   applyMica(info.mica);
   void useHistory.getState().reload();
   void useModels.getState().refresh();

@@ -93,16 +93,29 @@ pub fn type_text(text: &str) -> anyhow::Result<()> {
     let source = CGEventSource::new(CGEventSourceStateID::CombinedSessionState)
         .map_err(|_| anyhow::anyhow!("failed to create CGEventSource"))?;
 
-    for stroke in strokes(text) {
+    let mut iter = strokes(text).into_iter().peekable();
+    while let Some(stroke) = iter.next() {
         match stroke {
             Stroke::Unit(unit) => {
+                let mut units = [unit, 0];
+                let slice = if (0xD800..=0xDBFF).contains(&unit)
+                    && let Some(&Stroke::Unit(low)) = iter.peek()
+                    && (0xDC00..=0xDFFF).contains(&low)
+                {
+                    iter.next();
+                    units[1] = low;
+                    &units[..2]
+                } else {
+                    &units[..1]
+                };
+
                 let down = CGEvent::new_keyboard_event(source.clone(), 0, true)
                     .map_err(|_| anyhow::anyhow!("failed to create Unicode key down event"))?;
                 let up = CGEvent::new_keyboard_event(source.clone(), 0, false)
                     .map_err(|_| anyhow::anyhow!("failed to create Unicode key up event"))?;
 
-                down.set_string_from_utf16_unchecked(&[unit]);
-                up.set_string_from_utf16_unchecked(&[unit]);
+                down.set_string_from_utf16_unchecked(slice);
+                up.set_string_from_utf16_unchecked(slice);
 
                 down.set_integer_value_field(
                     EventField::EVENT_SOURCE_USER_DATA,

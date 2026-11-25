@@ -218,7 +218,15 @@ impl Hooks {
         let keyboard =
             unsafe { SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_proc), Some(module), 0)? };
         let mouse = if mouse {
-            Some(unsafe { SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_proc), Some(module), 0)? })
+            match unsafe { SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_proc), Some(module), 0) } {
+                Ok(m) => Some(m),
+                Err(e) => {
+                    unsafe {
+                        let _ = UnhookWindowsHookEx(keyboard);
+                    }
+                    return Err(e.into());
+                }
+            }
         } else {
             None
         };

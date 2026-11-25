@@ -1,5 +1,5 @@
 import { RefreshCw } from "lucide-react";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -73,19 +73,24 @@ export function AiSheet({
   const address = p?.endpoint ? endpoint.trim() || null : null;
   const typedKey = showKeyInput ? key.trim() || null : null;
 
+  const listSeq = useRef(0);
+
   const list = async () => {
     if (!p) return;
+    const seq = ++listSeq.current;
     setListing(true);
     setListError(null);
     try {
       const models = await commands.aiModels(p.id, typedKey, address);
+      if (listSeq.current !== seq) return;
       setFound(models);
       if (models.length === 0) setListError(`${p.name} didn't list any models.`);
       else setModel((m) => m.trim() || models[0]);
     } catch (e) {
+      if (listSeq.current !== seq) return;
       setListError(asFailure(e).message);
     } finally {
-      setListing(false);
+      if (listSeq.current === seq) setListing(false);
     }
   };
 
@@ -93,10 +98,11 @@ export function AiSheet({
   // with what the sheet opened with.
   const opened = asked?.opened ?? 0;
   useEffect(() => {
+    listSeq.current += 1;
     if (!open || !p || p.models.length > 0) return;
     const reachable = (p.key !== "required" || asked?.keySaved) && (!p.endpoint || p.defaultEndpoint || address);
     if (reachable) void list();
-  }, [opened]);
+  }, [opened, open]);
 
   if (!asked || !p) return null;
   const cloud = sendsAway(p, address);

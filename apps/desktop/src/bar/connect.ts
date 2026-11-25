@@ -17,18 +17,34 @@ async function listen() {
     return;
   }
   const bar = useBar.getState();
+  let sawState = false;
+  let sawResting = false;
+  let sawConfig = false;
   await Promise.all([
-    events.barStateChanged.listen((e) => useBar.getState().setState(e.payload)),
+    events.barStateChanged.listen((e) => {
+      sawState = true;
+      useBar.getState().setState(e.payload);
+    }),
     events.micLevel.listen((e) => emitLevel(e.payload ?? 0)),
     events.toastShown.listen((e) => useBar.getState().addToast(e.payload)),
     events.toastDismissed.listen((e) => useBar.getState().removeToast(e.payload)),
     events.barHover.listen((e) => useBar.getState().setHover(e.payload)),
-    events.barResting.listen((e) => useBar.setState({ resting: e.payload })),
-    events.barConfigChanged.listen((e) => useBar.setState({ config: e.payload })),
+    events.barResting.listen((e) => {
+      sawResting = true;
+      useBar.setState({ resting: e.payload });
+    }),
+    events.barConfigChanged.listen((e) => {
+      sawConfig = true;
+      useBar.setState({ config: e.payload });
+    }),
   ]);
   const snapshot = await commands.barSnapshot();
-  bar.setState(snapshot.state);
-  useBar.setState({ config: snapshot.config, resting: snapshot.resting, snoozed: snapshot.snoozed });
+  if (!sawState) bar.setState(snapshot.state);
+  useBar.setState((s) => ({
+    config: sawConfig ? s.config : snapshot.config,
+    resting: sawResting ? s.resting : snapshot.resting,
+    snoozed: snapshot.snoozed,
+  }));
 }
 
 /** Commands that do nothing outside the app, so the bar can be previewed in a browser. */
