@@ -28,6 +28,8 @@ export function MicTest({
   const [error, setError] = useState<string | null>(null);
   const [heard, setHeard] = useState(false);
   const meter = useRef<HTMLDivElement>(null);
+  const mounted = useRef(true);
+  const attempt = useRef(0);
 
   const paint = (level: number) => {
     const lit = Math.round(level * segments);
@@ -38,22 +40,33 @@ export function MicTest({
   };
 
   const stop = () => {
+    attempt.current += 1;
     void commands.micTestStop();
     setRunning(false);
     paint(0);
   };
 
   const start = async () => {
+    const id = ++attempt.current;
     setError(null);
     setHeard(false);
     setStarting(true);
     try {
-      setName(await commands.micTestStart(device));
+      const deviceName = await commands.micTestStart(device);
+      if (!mounted.current || attempt.current !== id) {
+        void commands.micTestStop();
+        return;
+      }
+      setName(deviceName);
       setRunning(true);
     } catch (e) {
-      setError(String(e));
+      if (mounted.current && attempt.current === id) {
+        setError(String(e));
+      }
     } finally {
-      setStarting(false);
+      if (mounted.current && attempt.current === id) {
+        setStarting(false);
+      }
     }
   };
 
@@ -79,7 +92,14 @@ export function MicTest({
     if (large) void start();
     else if (running) stop();
   }, [device]);
-  useEffect(() => () => void commands.micTestStop(), []);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      attempt.current += 1;
+      void commands.micTestStop();
+    };
+  }, []);
 
   const bars = (
     <div ref={meter} className={cn("flex items-center", large ? "h-12 gap-[5px]" : "h-4 gap-[3px]")} aria-hidden>

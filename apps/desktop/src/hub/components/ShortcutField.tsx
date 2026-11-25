@@ -6,6 +6,8 @@ import { commands, events, type Shortcut_Serialize as Shortcut } from "@/lib/bin
 import { cn, isMac } from "@/lib/utils";
 import { reservedBy, sameShortcut, shortcutKeys, shortcutLabel } from "../shortcut";
 
+let activeCancel: (() => void) | null = null;
+
 /**
  * Shows a shortcut and records a new one. While recording, Joona's keyboard
  * hook takes every key, so Win doesn't open Start and the old shortcut
@@ -30,24 +32,31 @@ export function ShortcutField({
   const [preview, setPreview] = useState<string[] | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const unlisten = useRef<(() => void) | null>(null);
+  const mounted = useRef(true);
+  const attempt = useRef(0);
 
   const finish = () => {
     unlisten.current?.();
     unlisten.current = null;
+    if (activeCancel === cancel) activeCancel = null;
     setRecording(false);
     setPreview(null);
   };
 
   const cancel = () => {
+    attempt.current += 1;
     void commands.shortcutRecordCancel();
     finish();
   };
 
   const start = async () => {
+    if (activeCancel && activeCancel !== cancel) activeCancel();
+    activeCancel = cancel;
+    const id = ++attempt.current;
     setProblem(null);
     setPreview(null);
     unlisten.current?.();
-    unlisten.current = await events.shortcutRecording.listen(({ payload }) => {
+    const stopListening = await events.shortcutRecording.listen(({ payload }) => {
       if (payload.kind === "preview") {
         setPreview(shortcutKeys(payload.shortcut));
         return;
@@ -71,12 +80,19 @@ export function ShortcutField({
         onChange(shortcut);
       }
     });
+    if (!mounted.current || attempt.current !== id) {
+      stopListening();
+      return;
+    }
+    unlisten.current = stopListening;
     setRecording(true);
     try {
       await commands.shortcutRecord();
     } catch (e) {
-      finish();
-      setProblem(String(e));
+      if (mounted.current && attempt.current === id) {
+        finish();
+        setProblem(String(e));
+      }
     }
   };
 
@@ -87,15 +103,19 @@ export function ShortcutField({
     return () => window.removeEventListener("blur", cancel);
   });
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      attempt.current += 1;
+      if (activeCancel === cancel) activeCancel = null;
       if (unlisten.current) {
         void commands.shortcutRecordCancel();
         unlisten.current();
+        unlisten.current = null;
       }
-    },
-    [],
-  );
+    };
+  }, []);
 
   return (
     <div className="flex flex-col items-end gap-1.5">
