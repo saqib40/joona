@@ -294,6 +294,9 @@ fn run(shared: Arc<Shared>) {
 mod mac {
     use std::sync::Mutex;
 
+    use core_graphics::display::CGDisplay;
+    use core_graphics::event::CGEvent;
+    use core_graphics::event_source::{CGEventSource, CGEventSourceStateID};
     use objc2::runtime::AnyObject;
     use objc2::{class, msg_send};
     use objc2_foundation::{NSPoint, NSRect, NSSize};
@@ -318,6 +321,37 @@ mod mac {
 
     static PLACED_FRAME: Mutex<Option<PlacedFrame>> = Mutex::new(None);
 
+    /// Holds a retained reference to an Objective-C `NSWindow` so queued
+    /// main-thread blocks cannot dereference a freed window on teardown.
+    struct RetainedWindow(*mut AnyObject);
+
+    // SAFETY: `RetainedWindow` is retained via `objc_retain` and only
+    // dereferenced and released on the AppKit main thread.
+    unsafe impl Send for RetainedWindow {}
+
+    impl RetainedWindow {
+        fn new(window_ptr: usize) -> Option<Self> {
+            let ptr = window_ptr as *mut AnyObject;
+            if ptr.is_null() {
+                return None;
+            }
+            unsafe { objc2::ffi::objc_retain(ptr.cast()) };
+            Some(Self(ptr))
+        }
+
+        fn as_ptr(&self) -> *mut AnyObject {
+            self.0
+        }
+    }
+
+    impl Drop for RetainedWindow {
+        fn drop(&mut self) {
+            if !self.0.is_null() {
+                unsafe { objc2::ffi::objc_release(self.0.cast()) };
+            }
+        }
+    }
+
     fn run_on_main<F: FnOnce() + Send + 'static>(f: F) {
         let boxed: Box<Box<dyn FnOnce() + Send>> = Box::new(Box::new(f));
         let raw = Box::into_raw(boxed) as *mut std::ffi::c_void;
@@ -333,31 +367,18 @@ mod mac {
         }
     }
 
-    unsafe extern "C" {
-        fn object_setClass(
-            obj: *mut AnyObject,
-            cls: *const objc2::runtime::AnyClass,
-        ) -> *const objc2::runtime::AnyClass;
+    fn run_on_main_window<F: FnOnce(*mut AnyObject) + Send + 'static>(window_ptr: usize, f: F) {
+        let Some(window) = RetainedWindow::new(window_ptr) else {
+            return;
+        };
+        run_on_main(move || {
+            f(window.as_ptr());
+            drop(window);
+        });
     }
 
     pub fn setup_window(window_ptr: usize) {
-        run_on_main(move || unsafe {
-            let window = window_ptr as *mut AnyObject;
-            if window.is_null() {
-                return;
-            }
-            // Dynamically swizzle the NSWindow to an NSPanel so that macOS treats it
-            // as a non-activating floating utility panel capable of joining full-screen spaces.
-            let panel_class = class!(NSPanel);
-            let _: *const objc2::runtime::AnyClass =
-                object_setClass(window, panel_class as *const _);
-            let _: () = msg_send![window, setFloatingPanel: true];
-            let _: () = msg_send![window, setBecomesKeyOnlyIfNeeded: true];
-
-            // NSWindowStyleMaskNonactivatingPanel = 1 << 7 (128)
-            let style_mask: usize = msg_send![window, styleMask];
-            let _: () = msg_send![window, setStyleMask: style_mask | (1 << 7)];
-
+        run_on_main_window(window_ptr, |window| unsafe {
             // kCGOverlayWindowLevelKey = 102 keeps the bar above full-screen apps and floating windows.
             let _: () = msg_send![window, setLevel: 102i64];
 
@@ -376,20 +397,13 @@ mod mac {
     }
 
     pub fn set_click_through(window_ptr: usize, click_through: bool) {
-        run_on_main(move || unsafe {
-            let window = window_ptr as *mut AnyObject;
-            if !window.is_null() {
-                let _: () = msg_send![window, setIgnoresMouseEvents: click_through];
-            }
+        run_on_main_window(window_ptr, move |window| unsafe {
+            let _: () = msg_send![window, setIgnoresMouseEvents: click_through];
         });
     }
 
     pub fn show(window_ptr: usize, visible: bool) {
-        run_on_main(move || unsafe {
-            let window = window_ptr as *mut AnyObject;
-            if window.is_null() {
-                return;
-            }
+        run_on_main_window(window_ptr, move |window| unsafe {
             if visible {
                 let behavior: usize = (1 << 0) | (1 << 6) | (1 << 8) | (1 << 18);
                 let _: () = msg_send![window, setCollectionBehavior: behavior];
@@ -402,14 +416,11 @@ mod mac {
     }
 
     pub fn raise(window_ptr: usize) {
-        run_on_main(move || unsafe {
-            let window = window_ptr as *mut AnyObject;
-            if !window.is_null() {
-                let behavior: usize = (1 << 0) | (1 << 6) | (1 << 8) | (1 << 18);
-                let _: () = msg_send![window, setCollectionBehavior: behavior];
-                let _: () = msg_send![window, setLevel: 102i64];
-                let _: () = msg_send![window, orderFrontRegardless];
-            }
+        run_on_main_window(window_ptr, |window| unsafe {
+            let behavior: usize = (1 << 0) | (1 << 6) | (1 << 8) | (1 << 18);
+            let _: () = msg_send![window, setCollectionBehavior: behavior];
+            let _: () = msg_send![window, setLevel: 102i64];
+            let _: () = msg_send![window, orderFrontRegardless];
         });
     }
 
@@ -417,11 +428,7 @@ mod mac {
         if locked {
             return;
         }
-        run_on_main(move || unsafe {
-            let window = window_ptr as *mut AnyObject;
-            if window.is_null() {
-                return;
-            }
+        run_on_main_window(window_ptr, |window| unsafe {
             let mouse = objc2_app_kit::NSEvent::mouseLocation();
             let screens: *mut AnyObject = msg_send![class!(NSScreen), screens];
             let mut screen: *mut AnyObject = std::ptr::null_mut();
@@ -479,8 +486,12 @@ mod mac {
     }
 
     pub fn cursor() -> Option<(f64, f64)> {
-        let pt = objc2_app_kit::NSEvent::mouseLocation();
-        Some((pt.x, pt.y))
+        let source = CGEventSource::new(CGEventSourceStateID::CombinedSessionState).ok()?;
+        let event = CGEvent::new(source).ok()?;
+        let pt = event.location();
+        // CGEvent::location() uses a top-left origin; AppKit screen coordinates use bottom-left.
+        let primary_height = CGDisplay::main().bounds().size.height;
+        Some((pt.x, primary_height - pt.y))
     }
 
     pub fn hit((cursor_x, cursor_y): (f64, f64), regions: &[Region]) -> bool {
