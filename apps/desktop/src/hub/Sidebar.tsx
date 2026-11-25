@@ -134,11 +134,15 @@ export function privacySummary(
   if (!settings) return { cloud: false, text: "Everything stays on this PC" };
   if (stt?.cloud) return { cloud: true, text: `Cloud: ${stt.name} hears your dictations` };
   const sarvam = settings.languages.speak.filter((l) => l.engine === "sarvam").map((l) => languageName(l.code));
+  const cloudPolish = settings.polish.level === "smart" && ai?.cloud ? ai.name : null;
   if (sarvam.length > 0) {
     const list = sarvam.length > 2 ? `${sarvam.slice(0, 2).join(", ")} +${sarvam.length - 2}` : sarvam.join(" and ");
-    return { cloud: true, text: `Cloud: Sarvam for ${list}` };
+    return {
+      cloud: true,
+      text: cloudPolish ? `Cloud: Sarvam (${list}) & ${cloudPolish} polish` : `Cloud: Sarvam for ${list}`,
+    };
   }
-  if (settings.polish.level === "smart" && ai?.cloud) return { cloud: true, text: `Cloud: Smart polish with ${ai.name}` };
+  if (cloudPolish) return { cloud: true, text: `Cloud: Smart polish with ${cloudPolish}` };
   return { cloud: false, text: "Everything stays on this PC" };
 }
 

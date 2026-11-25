@@ -377,8 +377,27 @@ mod mac {
         });
     }
 
+    unsafe extern "C" {
+        fn object_setClass(
+            obj: *mut AnyObject,
+            cls: *const objc2::runtime::AnyClass,
+        ) -> *const objc2::runtime::AnyClass;
+    }
+
     pub fn setup_window(window_ptr: usize) {
         run_on_main_window(window_ptr, |window| unsafe {
+            // Promote the bar's NSWindow to NSPanel with NonactivatingPanel so it stays
+            // visible above all applications and full-screen spaces without stealing focus.
+            let panel_class = class!(NSPanel);
+            let _: *const objc2::runtime::AnyClass =
+                object_setClass(window, panel_class as *const _);
+            let _: () = msg_send![window, setFloatingPanel: true];
+            let _: () = msg_send![window, setBecomesKeyOnlyIfNeeded: true];
+
+            // NSWindowStyleMaskNonactivatingPanel = 1 << 7 (128)
+            let style_mask: usize = msg_send![window, styleMask];
+            let _: () = msg_send![window, setStyleMask: style_mask | (1 << 7)];
+
             // kCGOverlayWindowLevelKey = 102 keeps the bar above full-screen apps and floating windows.
             let _: () = msg_send![window, setLevel: 102i64];
 
