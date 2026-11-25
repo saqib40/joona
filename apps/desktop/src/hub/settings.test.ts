@@ -67,14 +67,32 @@ describe("saveSettings", () => {
     const waiting = pendingSaves();
     const first = saveSettings((s) => void (s.general.sounds = false));
     const second = saveSettings((s) => void (s.general.theme = "dark"));
-    await vi.waitFor(() => expect(waiting).toHaveLength(2));
-    expect(waiting[1].settings.general.sounds).toBe(false);
+    await vi.waitFor(() => expect(waiting).toHaveLength(1));
 
     waiting[0].answer(waiting[0].settings);
     await first;
     expect(useHub.getState().settings?.general.theme).toBe("dark");
+    await vi.waitFor(() => expect(waiting).toHaveLength(2));
+    expect(waiting[1].settings.general.sounds).toBe(false);
     waiting[1].answer(waiting[1].settings);
     await second;
     expect(useHub.getState().settings?.general).toMatchObject({ sounds: false, theme: "dark" });
+  });
+
+  it("preserves a succeeding save when an earlier overlapping save fails", async () => {
+    const waiting = pendingSaves();
+    const first = saveSettings((s) => void (s.general.sounds = false));
+    const second = saveSettings((s) => void (s.general.theme = "dark"));
+    await vi.waitFor(() => expect(waiting).toHaveLength(1));
+
+    waiting[0].answer(new Error("disk full"));
+    await expect(first).resolves.toBe(false);
+
+    await vi.waitFor(() => expect(waiting).toHaveLength(2));
+    expect(waiting[1].settings.general.sounds).toBe(true);
+    expect(waiting[1].settings.general.theme).toBe("dark");
+    waiting[1].answer(waiting[1].settings);
+    await expect(second).resolves.toBe(true);
+    expect(useHub.getState().settings?.general).toMatchObject({ sounds: true, theme: "dark" });
   });
 });
