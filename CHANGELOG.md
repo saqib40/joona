@@ -3,6 +3,17 @@
 Each release's notes come from its section here. Joona shows the first line
 when it offers the update, so keep that line to one plain sentence.
 
+## 0.2.7
+
+Fixes macOS hotkey reliability, overlay stability, concurrent state races, and privacy badge accuracy.
+
+- Fixed macOS `CGEventTap` recovery after OS timeouts, added `on_tick` timer for short taps, and tracked left/right modifier keys individually.
+- Fixed macOS overlay pointer retention and thread-safe cursor tracking while keeping the floating `NSPanel` visible across all apps and Spaces.
+- Isolated Silero VAD detector state per engine session to prevent concurrent sessions from corrupting each other.
+- Serialized `SettingsStore` writes, `updates::install` / `check` transitions, and frontend `saveSettings` to eliminate lost updates and rollbacks.
+- Fixed `ShortcutField` and `MicTest` unmount/switch races, `History::list` keyset pagination ties, and startup snapshot races.
+- Updated the sidebar privacy badge to show both speech and Smart polish cloud usage.
+
 ## 0.2.6
 
 Restores the native macOS top application menu bar, Dock integration, and accessible Quit controls.
